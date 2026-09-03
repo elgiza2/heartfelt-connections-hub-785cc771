@@ -11,8 +11,9 @@
 - [x] Capability brief updated so the model knows the new tools
 - [x] Smaller, cleaner AI text size in chat
 - [x] Chips: smaller rounded pills, cleaner icons/labels
+- [x] Tool icons: one shared `ToolIcon` (brand mark or quiet lucide glyph) used by `ThinkingTrace` and `ParallelAgentsPanel`
 
 ## Open
 - [ ] Move server logic off Supabase Edge Functions into app server routes (`api/`) — large migration, needs its own pass (chat-alibaba, chat-fast, computer-agent, long-run, deep-research)
 - [ ] Browser Use Cloud extra endpoints (profiles, files, structured task output) + provider MCP endpoints
-- [ ] Tool icon polish pass across `ThinkingTrace` / `ParallelAgentsPanel`
+
