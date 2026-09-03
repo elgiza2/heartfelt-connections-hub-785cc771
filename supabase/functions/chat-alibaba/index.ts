@@ -185,8 +185,13 @@ async function callAlibaba(
       }
     }
   }
+  // No Model Studio key worked (or none is configured): keep the product alive
+  // through the Lovable AI Gateway, which needs no manual setup.
+  const fallback = await callGateway(payload);
+  if (fallback) return { response: fallback, model: GATEWAY_MODEL };
   return null;
 }
+
 
 /** Non-streaming text helper for the manager and the parallel workers. */
 function makeTextCall(admin: any): PlannerCall {
