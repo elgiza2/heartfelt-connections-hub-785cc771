@@ -29,16 +29,6 @@ export interface ThinkingTraceProps {
 
 const RTL_LANGS = new Set(["ar", "ar-eg", "fa", "he"]);
 
-/** Existing icon set, mapped onto the real tool that is running. */
-const TOOL_ICONS: Record<string, typeof Globe> = {
-  browser: Globe,
-  code: Terminal,
-  files: FileText,
-  mcp: Plug,
-  integration: Plug,
-  search: Search,
-  image: ImageIcon,
-};
 
 /**
  * The single "AI thinking" surface used across chat, deep research, slides,
