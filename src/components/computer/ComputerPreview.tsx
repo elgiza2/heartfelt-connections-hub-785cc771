@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 /**
  * Computer surface, reduced to two things only:
  *   1. a single thinking badge in the chat while the agent works,
- *   2. the computer card itself — clean rounded frame, one open/close toggle,
+ *   2. the computer card itself — a clean rounded screen with no chrome,
  *      no titles, no buttons, no step lists.
  * The final answer is rendered as plain chat text.
  */
