@@ -12,3 +12,6 @@
 - [ ] Fix backend agent/task lifecycle and provider failures
 - [ ] Verify guest and authenticated flows on mobile and desktop
 - [ ] Run targeted tests and security checks
+
+## Blocked
+- [ ] Redeploy edge functions (Supabase deploy API returns internal error for every function, including untouched ones) — retry, then re-test chat/computer end to end.
