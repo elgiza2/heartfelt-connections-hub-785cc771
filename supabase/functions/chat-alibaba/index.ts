@@ -371,8 +371,23 @@ Deno.serve(async (req) => {
           }
         }
 
+        // Global memory: durable facts about this person (signed in OR guest)
+        // recalled from every earlier conversation and injected silently.
+        let memoryBlock = "";
+        try {
+          const mem = await import("./memory.ts");
+          const identity = await mem.memoryIdentity(
+            userId,
+            req.headers.get("x-anon-fingerprint"),
+          );
+          if (identity) memoryBlock = await mem.recall(admin, identity, question);
+        } catch (error) {
+          console.error("chat-alibaba memory recall skipped", error);
+        }
+
         const system = [
           SYSTEM,
+          memoryBlock,
           profileSystem(profile),
           typeof body.customSystem === "string" ? body.customSystem : "",
           liveContext,
@@ -395,8 +410,10 @@ Deno.serve(async (req) => {
           // Deep thinking is a user-facing toggle: when it is on the model
           // streams `reasoning_content`, which the UI renders in the thinking
           // panel. Off keeps the fastest possible first token.
-          enable_thinking: body.thinking === true,
-          ...(body.thinking === true ? { thinking_budget: 2048 } : {}),
+          // Internal reasoning is on unless the caller explicitly opts out, so
+          // the thinking panel always has real content to stream.
+          enable_thinking: body.thinking !== false,
+          ...(body.thinking !== false ? { thinking_budget: 2048 } : {}),
 
           temperature: profile.temperature,
           max_tokens: Math.min(Math.max(Number(body.maxTokens) || 8192, 512), 16384),

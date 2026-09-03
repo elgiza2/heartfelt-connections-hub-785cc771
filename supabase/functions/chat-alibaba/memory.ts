@@ -32,6 +32,27 @@ function score(row: MemoryRow, wanted: Set<string>): number {
   return overlap + durable + (row.confidence || 0) * 0.5;
 }
 
+/**
+ * Global memory identity.
+ *
+ * Memory is not a signed-in-only feature: a guest keeps their own memory too,
+ * keyed by a deterministic UUID derived from their anonymous fingerprint, so
+ * the assistant remembers them across turns and conversations on that device.
+ */
+export async function memoryIdentity(
+  userId: string | null,
+  fingerprint: string | null,
+): Promise<string | null> {
+  if (userId) return userId;
+  const fp = (fingerprint ?? "").trim();
+  if (fp.length < 8) return null;
+  const bytes = new Uint8Array(
+    await crypto.subtle.digest("SHA-256", new TextEncoder().encode(`megsy-guest-memory:${fp}`)),
+  );
+  const hex = Array.from(bytes.slice(0, 16), (b) => b.toString(16).padStart(2, "0")).join("");
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`;
+}
+
 /** Compact memory block for the system prompt, or "" when nothing is relevant. */
 export async function recall(admin: any, userId: string | null, question: string): Promise<string> {
   if (!userId) return "";
