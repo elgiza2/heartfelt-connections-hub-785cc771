@@ -13,6 +13,7 @@ import {
   tickRun,
 } from "../_shared/agentkernel/kernel.ts";
 import { openQuestion } from "../_shared/agentkernel/questions.ts";
+import { dataServiceKey, dataUrl } from "../_shared/dataProject.ts";
 
 export interface LongRunPayload {
   action?:
@@ -38,8 +39,8 @@ export interface LongRunPayload {
 }
 
 function db() {
-  const url = Deno.env.get("SUPABASE_URL");
-  const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  const url = dataUrl();
+  const key = dataServiceKey();
   if (!url || !key) throw new Error("Server misconfigured");
   return createClient(url, key, { auth: { persistSession: false } });
 }
