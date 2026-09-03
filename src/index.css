@@ -1799,9 +1799,11 @@ body {
 
 /* Markdown prose — clean, readable chat typography */
 .prose-chat {
-  line-height: 1.72;
-  font-size: 1.0625rem;
+  line-height: 1.68;
+  /* Global-standard reading size for AI answers (ChatGPT/Claude scale). */
+  font-size: 0.9375rem;
   color: hsl(var(--foreground) / 0.92);
+
   min-width: 0;
   max-width: 100%;
   overflow-wrap: anywhere;
