@@ -1,5 +1,6 @@
 /** @doc Browser client for the Computer Agent (Supabase edge function `computer-agent`). */
 import { supabase } from "@/integrations/supabase/client";
+import { edgeAnonKey, edgeUrl } from "@/lib/edgeRuntime";
 
 export interface ComputerFile {
   name: string;
@@ -27,8 +28,8 @@ export interface ComputerEvent {
 
 const SIGN_IN_MESSAGE = "سجّل الدخول أولاً لتشغيل مهام الكمبيوتر. / Please sign in to run computer tasks.";
 
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
-const COMPUTER_AGENT_URL = `${import.meta.env.VITE_SUPABASE_URL as string}/functions/v1/computer-agent`;
+const SUPABASE_ANON_KEY = edgeAnonKey("computer-agent");
+const COMPUTER_AGENT_URL = edgeUrl("computer-agent");
 
 
 async function call<T>(body: Record<string, unknown>): Promise<T> {

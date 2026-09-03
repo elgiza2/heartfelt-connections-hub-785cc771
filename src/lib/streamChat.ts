@@ -2,6 +2,7 @@ import { startJob, subscribeJob, resumeJob } from "@/lib/jobs/client";
 import { getAnonFingerprint } from "@/lib/anonFingerprint";
 import { isFastLaneEligible, tryFastChat } from "@/lib/chat/fastChat";
 import { readChatModelPreferences } from "@/lib/chatModelPreferences";
+import { edgeAnonKey, edgeUrl } from "@/lib/edgeRuntime";
 
 /**
  * Internal reasoning is ON by default: users expect to see the thinking trace
@@ -63,7 +64,7 @@ type BrowserPayload = {
   currentStep?: string;
 };
 
-const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat-alibaba`;
+const CHAT_URL = edgeUrl("chat-alibaba");
 
 // Lightweight session-token cache so we don't hit auth/v1/user on every send.
 // The access_token in supabase-js is already cached in localStorage; we just
@@ -484,7 +485,7 @@ export async function streamChat({
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            apikey: edgeAnonKey("chat-alibaba"),
             Authorization: `Bearer ${authToken}`,
             "x-anon-fingerprint": fingerprint,
           },
