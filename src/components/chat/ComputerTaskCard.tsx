@@ -65,7 +65,7 @@ export default function ComputerTaskCard({ taskId }: Props) {
     };
   }, [taskId]);
 
-  const running = !task || task.status === "pending" || task.status === "running";
+  const running = !timedOut && (!task || task.status === "pending" || task.status === "running");
   const files = task?.files ?? [];
   const traceSteps = useMemo(() => events.map((event) => event.title).filter(Boolean), [events]);
   const traceText = useMemo(
