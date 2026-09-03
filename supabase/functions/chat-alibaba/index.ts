@@ -25,6 +25,8 @@ const headers = {
 // Only the international Model Studio endpoint accepts the workspace key stored
 // in Supabase (`alibaba_keys`). The Beijing endpoint rejects it with 401, so it
 // is intentionally not tried. No other AI provider is used by this function.
+import { callGateway, GATEWAY_MODEL } from "../_shared/gatewayFallback.ts";
+
 const ENDPOINTS = [
   "https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions",
 ];
