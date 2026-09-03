@@ -22,14 +22,11 @@ const headers = {
     "authorization, x-client-info, apikey, content-type, x-anon-fingerprint",
 };
 
-// Only the international Model Studio endpoint accepts the workspace key stored
-// in Supabase (`alibaba_keys`). The Beijing endpoint rejects it with 401, so it
-// is intentionally not tried. No other AI provider is used by this function.
+// The only text-model provider is abliteration.ai (see `_shared/abliteration.ts`).
+// Browsing/computer work runs on Browser Use Cloud. No other AI provider is used.
 import { AGENT_MODEL, callAgentFallback } from "../_shared/agentFallback.ts";
+import { callModel, MODELS, resolveModel } from "../_shared/abliteration.ts";
 
-const ENDPOINTS = [
-  "https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions",
-];
 
 const SYSTEM = `You are MEGSY, an autonomous general-purpose AI agent.
 Today is ${new Date().toISOString().slice(0, 10)} and the current year is 2026. Never describe older information as current.
@@ -78,56 +75,8 @@ function json(value: unknown, status = 200) {
   });
 }
 
-/**
- * The Model Studio key kept as a Supabase function secret. Any name that looks
- * like an Alibaba/DashScope/Qwen/Kimi key is accepted, so the secret works
- * whatever the user named it.
- */
-function envKeys(): string[] {
-  const preferred = [
-    "DASHSCOPE_API_KEY",
-    "ALIBABA_API_KEY",
-    "ALIBABA_KEY",
-    "QWEN_API_KEY",
-    "ALIBABA_DASHSCOPE_API_KEY",
-    "DASHSCOPE_KEY",
-    "MODEL_STUDIO_API_KEY",
-    "KIMI_API_KEY",
-    "MOONSHOT_API_KEY",
-  ];
-  const out: string[] = [];
-  const push = (value?: string) => {
-    const key = value?.trim();
-    if (key && key.length > 16 && !out.includes(key)) out.push(key);
-  };
-  for (const name of preferred) push(Deno.env.get(name));
-  for (const [name, value] of Object.entries(Deno.env.toObject())) {
-    if (/TOKEN|TELEGRAM|BOT|SECRET|WEBHOOK/i.test(name)) continue;
-    if (/DASHSCOPE|ALIBABA|QWEN|KIMI|MOONSHOT|MODEL_?STUDIO/i.test(name)) push(value);
-  }
-  return out;
-}
+// Key resolution and rotation live in `_shared/abliteration.ts`.
 
-async function modelKeys(admin: any) {
-  // The function secret comes first: it is the key the workspace owner set, and
-  // trying it before the DB rows keeps a stale/invalid row from adding latency.
-  const result: Array<{ id?: string; key: string }> = envKeys().map((key) => ({ key }));
-  const { data } = await admin
-    .from("alibaba_keys")
-    .select("id,api_key")
-    .eq("status", "active")
-    .in("category", ["qwen", "memory", "text"])
-    .order("last_used_at", { ascending: true, nullsFirst: true })
-    .limit(6);
-  for (const row of (data ?? []) as any[]) {
-    const key = typeof row.api_key === "string" ? row.api_key.trim() : "";
-    // Skip junk rows (e.g. a "/stats" placeholder) that only produce 401s.
-    if (key.length > 16 && !result.some((entry) => entry.key === key)) {
-      result.push({ id: row.id, key });
-    }
-  }
-  return result;
-}
 
 function normalizeMessages(input: Message[]): Message[] | null {
   if (!input.length || input.length > 80) return null;
@@ -140,60 +89,23 @@ function normalizeMessages(input: Message[]): Message[] | null {
   return output;
 }
 
-/** True when the upstream rejected the request because the model is unavailable. */
-function isModelError(status: number, detail: string): boolean {
-  return (
-    status === 404 ||
-    /model|not_?found|not exist|unsupported|no access|InvalidParameter/i.test(detail)
-  );
-}
-
 /**
- * Calls Alibaba Model Studio, trying each candidate model in turn (Qwen and the
- * third-party models Alibaba hosts) and each active key, across both regions.
+ * One model call on abliteration.ai, trying every model on the ladder and every
+ * active key. When no key works, the turn is handed to Browser Use Cloud, which
+ * brings its own LLM, so the user still gets a complete answer.
  */
 async function callAlibaba(
   admin: any,
   models: string[],
   payload: Record<string, unknown>,
 ): Promise<(ChatUpstream & { model: string }) | null> {
-  const keys = await modelKeys(admin);
-  models: for (const model of models) {
-    for (const entry of keys) {
-      for (const endpoint of ENDPOINTS) {
-        try {
-          const requestPayload = model.startsWith("qwen")
-            ? payload
-            : Object.fromEntries(
-              Object.entries(payload).filter(([name]) => name !== "enable_search" && name !== "search_options"),
-            );
-          const response = await fetch(endpoint, {
-            method: "POST",
-            headers: { "Content-Type": "application/json", Authorization: `Bearer ${entry.key}` },
-            body: JSON.stringify({
-              ...requestPayload,
-              ...(model.startsWith("kimi-") ? { temperature: undefined } : {}),
-              model,
-            }),
-          });
-          if (response.ok) return { response, keyId: entry.id, model };
-          const detail = (await response.text().catch(() => "")).slice(0, 500);
-          console.error(`chat-alibaba upstream ${model} [${response.status}]: ${detail}`);
-          if (isModelError(response.status, detail)) continue models;
-          if (![401, 403, 429].includes(response.status) && response.status < 500) return null;
-        } catch (error) {
-          console.error("chat-alibaba upstream request failed", error);
-        }
-      }
-    }
-  }
-  // No Model Studio key worked (or none is configured): run the turn on our own
-  // cloud agents (Browser Use Cloud, then Hyperbrowser) — they bring their own
-  // LLMs, so no third-party chat gateway is involved.
+  const result = await callModel(admin, models, payload);
+  if (result) return result;
   const fallback = await callAgentFallback(payload);
   if (fallback) return { response: fallback, model: AGENT_MODEL };
   return null;
 }
+
 
 
 /** Non-streaming text helper for the manager and the parallel workers. */
@@ -225,7 +137,7 @@ async function personalization(admin: any, userId: string) {
   const prompt = `Infer a conservative personalization profile from these memories. Do not invent facts.
 Return JSON only with keys call_name, profession, about, interests (array), ai_traits, custom_instructions.
 Memories: ${JSON.stringify(memories ?? []).slice(0, 10000)}`;
-  const result = await callAlibaba(admin, ["qwen-plus", "qwen-max"], {
+  const result = await callAlibaba(admin, [MODELS.standard], {
     stream: false,
     temperature: 0.2,
     response_format: { type: "json_object" },
@@ -335,8 +247,8 @@ Deno.serve(async (req) => {
         // keep their own model ladder (coding stays on Kimi).
         const candidates = profileModels(profile, profile.id === "general" ? body.model : undefined);
         const models = tierBoost && profile.id === "general"
-          ? ["qwen-max", ...candidates]
-          : candidates;
+          ? [MODELS.standard, ...candidates.map(resolveModel)]
+          : candidates.map(resolveModel);
 
         let liveContext = "";
         let agentContext = "";
@@ -438,7 +350,7 @@ Deno.serve(async (req) => {
           if (detail) console.error(`chat-alibaba fallback [${result?.response.status}]: ${detail.slice(0, 500)}`);
 
           // No text model available → run the turn on the cloud browser agents
-          // (Browser Use, then Hyperbrowser). They bring their own LLM, so the
+          // (Browser Use Cloud). It brings its own LLM, so the
           // user still gets a complete answer with live evidence.
           send({ status: "thinking", agent: profile.id, agent_label: profile.labelAr, engine: "cloud-agent" });
           const goal = [
@@ -475,10 +387,6 @@ Deno.serve(async (req) => {
 
         const usedModel = result.model ?? models[0];
         send({ status: "thinking", model: usedModel, agent: profile.id });
-        if (result.keyId) {
-          void admin.from("alibaba_keys").update({ last_used_at: new Date().toISOString() })
-            .eq("id", result.keyId);
-        }
 
         const upstreamReader = result.response.body.getReader();
         // The upstream SSE is forwarded byte-for-byte; we only sniff the text

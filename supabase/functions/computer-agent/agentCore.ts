@@ -53,10 +53,16 @@ async function authenticate(supabase: SupabaseClient, token?: string) {
 
 /**
  * Active keys, least-recently-used first, skipping keys in cooldown.
- * Two pools are merged: the dedicated `manus_keys` table (admin /m page) and
- * the shared `provider_api_keys` pool under provider "c" (the /k page).
+ * Three pools are merged: the dedicated `browser_use_keys` table (Browser Use
+ * Cloud keys), the legacy `manus_keys` table and the shared `provider_api_keys`
+ * pool under provider "c".
  */
 async function availableKeys(supabase: SupabaseClient): Promise<KeyRow[]> {
+  const { data: browserUse } = await supabase
+    .from("browser_use_keys")
+    .select("id,api_key,status,failure_count,cooldown_until,last_used_at,priority")
+    .eq("status", "active");
+
   const { data } = await supabase
     .from("manus_keys")
     .select("id,api_key,status,failure_count,cooldown_until,last_used_at,priority")
@@ -78,8 +84,18 @@ async function availableKeys(supabase: SupabaseClient): Promise<KeyRow[]> {
     priority: 0,
   }));
 
+  const browserUseRows: KeyRow[] = ((browserUse ?? []) as Array<Record<string, unknown>>).map((r) => ({
+    id: `bu:${String(r.id)}`,
+    api_key: String(r.api_key ?? ""),
+    status: "active",
+    failure_count: Number(r.failure_count ?? 0),
+    cooldown_until: (r.cooldown_until as string | null) ?? null,
+    last_used_at: (r.last_used_at as string | null) ?? null,
+    priority: Number(r.priority ?? 0) + 10,
+  }));
+
   const now = Date.now();
-  return [...((data ?? []) as KeyRow[]), ...poolRows]
+  return [...browserUseRows, ...((data ?? []) as KeyRow[]), ...poolRows]
     .filter((k) => k.api_key && (!k.cooldown_until || new Date(k.cooldown_until).getTime() <= now))
     .sort((a, b) => {
       const pa = a.priority ?? 0;
@@ -99,6 +115,21 @@ async function markFailure(
   retryAfterSec?: number,
 ) {
   if (key.id === "env") return; // env-configured fallback key has no DB row
+
+  if (key.id.startsWith("bu:")) {
+    const patch: Record<string, unknown> = {
+      failure_count: (key.failure_count ?? 0) + 1,
+      last_error: `${status}: ${message}`.slice(0, 500),
+      updated_at: new Date().toISOString(),
+    };
+    if (status === 402 || status === 403) patch.status = "exhausted";
+    else if (status === 401) patch.status = "disabled";
+    else if (status === 429) {
+      patch.cooldown_until = new Date(Date.now() + (retryAfterSec ?? 120) * 1000).toISOString();
+    } else patch.cooldown_until = new Date(Date.now() + 30_000).toISOString();
+    await supabase.from("browser_use_keys").update(patch).eq("id", key.id.slice(3));
+    return;
+  }
 
   if (key.id.startsWith("pool:")) {
     const patch: Record<string, unknown> = {
@@ -129,6 +160,13 @@ async function markFailure(
 
 async function markSuccess(supabase: SupabaseClient, key: KeyRow) {
   if (key.id === "env") return;
+  if (key.id.startsWith("bu:")) {
+    await supabase
+      .from("browser_use_keys")
+      .update({ last_used_at: new Date().toISOString(), failure_count: 0, last_error: null })
+      .eq("id", key.id.slice(3));
+    return;
+  }
   if (key.id.startsWith("pool:")) {
     await supabase
       .from("provider_api_keys")
@@ -370,7 +408,8 @@ export async function handleComputerAgent(payload: ComputerPayload | null): Prom
         .from("computer_tasks")
         .update({
           provider_task_id: providerId || null,
-          // key_id is a uuid FK to manus_keys, so shared-pool / env keys stay null.
+          // key_id is a uuid FK to manus_keys, so browser-use / shared-pool /
+          // env keys stay null.
           key_id: /^[0-9a-f-]{36}$/i.test(res.key.id) && !res.key.id.startsWith("pool:")
             ? res.key.id
             : null,

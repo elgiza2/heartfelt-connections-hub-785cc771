@@ -1,21 +1,20 @@
 /**
- * Unified cloud agent engine.
+ * Cloud computer engine — Browser Use Cloud only.
  *
- * Two real browser-agent providers behind one call:
- *   1. Browser Use Cloud  (api.browser-use.com/api/v2)  — primary
- *   2. Hyperbrowser        (app.hyperbrowser.ai/api)     — fallback
+ * The product's computer/browser work runs on Browser Use Cloud
+ * (`api.browser-use.com/api/v2`). Keys come from the admin-managed
+ * `browser_use_keys` table (rotatable, with cooldowns), then the legacy
+ * `manus_keys` / `provider_api_keys` pools, then the function secret.
  *
- * They bring their own LLMs, so the app needs no separate chat-model provider
- * for these turns: the agent browses, reasons and returns a finished answer.
+ * Text models are a separate concern and live in `abliteration.ts`.
  */
 
 const BU_BASE = Deno.env.get("BROWSER_USE_API_BASE") || "https://api.browser-use.com/api/v2";
-const HB_BASE = "https://app.hyperbrowser.ai/api";
 
 export type AgentProgress = (step: { title: string; url?: string | null }) => void;
 
 export interface CloudAgentResult {
-  provider: "browser-use" | "hyperbrowser";
+  provider: "browser-use";
   text: string;
   steps: { title: string; url?: string | null }[];
   liveUrl?: string | null;
@@ -27,10 +26,18 @@ interface Admin {
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-/** Browser Use key: both DB pools first (rotatable), then the function secret. */
+/** Browser Use keys: the dedicated table first, then legacy pools, then env. */
 async function buKey(admin: Admin | null): Promise<string | null> {
   if (admin) {
-    const [{ data: dedicated }, { data: shared }] = await Promise.all([
+    const now = Date.now();
+    const [{ data: dedicated }, { data: legacy }, { data: shared }] = await Promise.all([
+      admin
+        .from("browser_use_keys")
+        .select("api_key,priority,last_used_at,cooldown_until")
+        .eq("status", "active")
+        .order("priority", { ascending: false })
+        .order("last_used_at", { ascending: true, nullsFirst: true })
+        .limit(10),
       admin
         .from("manus_keys")
         .select("api_key,priority,last_used_at,cooldown_until")
@@ -46,14 +53,11 @@ async function buKey(admin: Admin | null): Promise<string | null> {
         .order("last_used_at", { ascending: true, nullsFirst: true })
         .limit(10),
     ]);
-    const now = Date.now();
-    const keys = [
-      ...((dedicated ?? []) as Array<{ api_key?: string; cooldown_until?: string | null }>).filter(
+    const usable = (rows: unknown) =>
+      ((rows ?? []) as Array<{ api_key?: string; cooldown_until?: string | null }>).filter(
         (row) => !row.cooldown_until || new Date(row.cooldown_until).getTime() <= now,
-      ),
-      ...((shared ?? []) as Array<{ api_key?: string }>),
-    ];
-    for (const row of keys) {
+      );
+    for (const row of [...usable(dedicated), ...usable(legacy), ...usable(shared)]) {
       const key = row.api_key?.trim();
       if (key && key.length > 12) return key;
     }
@@ -61,25 +65,6 @@ async function buKey(admin: Admin | null): Promise<string | null> {
   return Deno.env.get("BROWSER_USE_API_KEY")?.trim() || null;
 }
 
-async function hbKeys(admin: Admin | null): Promise<string[]> {
-  const out: string[] = [];
-  const env = Deno.env.get("HYPERBROWSER_API_KEY")?.trim();
-  if (env) out.push(env);
-  if (admin) {
-    const { data } = await admin
-      .from("api_keys")
-      .select("api_key")
-      .eq("service", "hyperbrowser")
-      .eq("is_active", true)
-      .order("last_used_at", { ascending: true, nullsFirst: true })
-      .limit(5);
-    for (const row of (data ?? []) as { api_key?: string }[]) {
-      const key = row.api_key?.trim();
-      if (key && !out.includes(key)) out.push(key);
-    }
-  }
-  return out;
-}
 
 /* ------------------------------- Browser Use ------------------------------ */
 
@@ -150,54 +135,11 @@ async function runBrowserUse(
   return steps.length ? { provider: "browser-use", text: "", steps, liveUrl } : null;
 }
 
-/* ------------------------------ Hyperbrowser ----------------------------- */
-
-async function runHyperbrowser(
-  key: string,
-  task: string,
-  budgetMs: number,
-  onStep?: AgentProgress,
-): Promise<CloudAgentResult | null> {
-  const headers = { "x-api-key": key, "Content-Type": "application/json" };
-  const created = await fetch(`${HB_BASE}/task/browser-use`, {
-    method: "POST",
-    headers,
-    body: JSON.stringify({ task: task.slice(0, 30_000), maxSteps: 40, useVision: false }),
-  });
-  if (!created.ok) {
-    console.error("hyperbrowser create failed", created.status, (await created.text().catch(() => "")).slice(0, 300));
-    return null;
-  }
-  const jobId = ((await created.json().catch(() => null)) as any)?.jobId;
-  if (!jobId) return null;
-
-  const deadline = Date.now() + budgetMs;
-  const steps: { title: string; url?: string | null }[] = [];
-  while (Date.now() < deadline) {
-    await sleep(3_000);
-    const resp = await fetch(`${HB_BASE}/task/browser-use/${jobId}`, { headers });
-    if (!resp.ok) continue;
-    const job = await resp.json().catch(() => null) as any;
-    const status = job?.status;
-    if (status === "completed") {
-      const text = String(job?.data?.finalResult ?? job?.data?.output ?? "").trim();
-      return { provider: "hyperbrowser", text, steps };
-    }
-    if (status === "failed" || status === "stopped") {
-      console.error("hyperbrowser job ended", status, job?.error);
-      return null;
-    }
-    const entry = { title: `browsing… (${status ?? "running"})` };
-    onStep?.(entry);
-  }
-  return null;
-}
-
 /* --------------------------------- Public -------------------------------- */
 
 /**
- * Runs one goal on the cloud agents: Browser Use first, Hyperbrowser as the
- * fallback. Returns null only when both providers are unavailable.
+ * Runs one goal on Browser Use Cloud. Returns null when no key is available or
+ * the run produced nothing.
  */
 export async function runCloudAgent(
   admin: Admin | null,
@@ -206,13 +148,12 @@ export async function runCloudAgent(
 ): Promise<CloudAgentResult | null> {
   const budgetMs = Math.min(Math.max(options.budgetMs ?? 180_000, 20_000), 900_000);
   const key = await buKey(admin);
-  if (key) {
-    const result = await runBrowserUse(key, goal, budgetMs, options.onStep);
-    if (result?.text) return result;
-  }
-  for (const hb of await hbKeys(admin)) {
-    const result = await runHyperbrowser(hb, goal, budgetMs, options.onStep);
-    if (result) return result;
-  }
-  return null;
+  if (!key) return null;
+  return await runBrowserUse(key, goal, budgetMs, options.onStep);
 }
+
+/** True when a Browser Use key is configured as a function secret. */
+export function hasBrowserUseEnvKey(): boolean {
+  return Boolean(Deno.env.get("BROWSER_USE_API_KEY")?.trim());
+}
+

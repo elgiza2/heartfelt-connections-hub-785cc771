@@ -20,7 +20,7 @@ export const MODELS = {
 } as const;
 
 /** Every model id the provider serves, in fallback order. */
-export const MODEL_LADDER = [MODELS.standard, MODELS.fast, MODELS.large];
+export const MODEL_LADDER: string[] = [MODELS.standard, MODELS.fast, MODELS.large];
 
 export interface ModelKey {
   id?: string;

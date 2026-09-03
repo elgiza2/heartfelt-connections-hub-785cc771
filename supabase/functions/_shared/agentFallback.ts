@@ -161,11 +161,8 @@ export async function callAgentFallback(
   });
 }
 
-/** True when at least one of our agent providers has a key available. */
+/** True when a Browser Use key (or the data project holding the pool) exists. */
 export function hasAgentProvider(): boolean {
-  return Boolean(
-    Deno.env.get("BROWSER_USE_API_KEY")?.trim() ||
-      Deno.env.get("HYPERBROWSER_API_KEY")?.trim() ||
-      dataServiceKey(),
-  );
+  return Boolean(Deno.env.get("BROWSER_USE_API_KEY")?.trim() || dataServiceKey());
 }
+
