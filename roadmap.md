@@ -1,16 +1,18 @@
 # Roadmap
 
-- [x] Trace the current chat-alibaba client contract
-- [x] Implement a compatible local chat-alibaba Edge Function
-- [x] Wire the existing 2026 agent instructions and live-search capability
-- [x] Verify the chat flow and error handling
-- [x] Live web research pre-pass in every chat turn (planner + Brave/Gateway search + page reading + citations)
-- [x] Internal multi-agent router (coder/researcher/analyst/writer/operator/general) with per-agent model ladders, coding on Kimi K3
-- [ ] Connections screen for user-provided API keys (Brave, others)
-- [ ] Parallel specialist sub-agents for long research reports
-- [x] Rebuild referral page around the approved artwork with a clean, icon-free interface
+## Done
+- [x] Computer card in chat: bare rounded screen (no header, icons or buttons), and it now appears as soon as the computer runs (shimmer placeholder before the live view exists)
+- [x] Internal thinking streams by default (`enable_thinking` on unless explicitly disabled, client toggle defaults to on)
+- [x] Speed: greetings/one-liners skip thinking and use a small output budget (instant replies)
+- [x] Plan cards: each step shows a real task name plus its detail instead of a raw numbered line
+- [x] Signed-out users: verified guests are allowed (fingerprint identity, quota-limited, no auth wall)
+- [x] Global memory: recall + write for signed-in users AND guests (deterministic identity from the anonymous fingerprint), injected into every turn
+- [x] Hyperbrowser data tools added and exposed to the agent: `scrape_page`, `crawl_site`, `extract_data`
+- [x] Capability brief updated so the model knows the new tools
+- [x] Smaller, cleaner AI text size in chat
+- [x] Chips: smaller rounded pills, cleaner icons/labels
 
-## 2026-09-02
-- [ ] إعادة ربط موصّل Telegram في الوركسبيس الجديد
-- [ ] إزالة الوميض/الريفرش عند التنقل بين الصفحات وعند أول رسالة
-- [ ] تحسين تغطية الترجمة المصرية في معظم الصفحات
+## Open
+- [ ] Move server logic off Supabase Edge Functions into app server routes (`api/`) — large migration, needs its own pass (chat-alibaba, chat-fast, computer-agent, long-run, deep-research)
+- [ ] Browser Use Cloud extra endpoints (profiles, files, structured task output) + provider MCP endpoints
+- [ ] Tool icon polish pass across `ThinkingTrace` / `ParallelAgentsPanel`

@@ -36,7 +36,8 @@ const handleCardClick = (
 };
 
 const chipClass =
-  "flex items-center gap-2 rounded-lg border border-border/40 bg-background hover:bg-accent/60 px-3.5 h-11 md:h-9 shadow-sm transition duration-150 active:scale-95";
+  "flex items-center gap-1.5 rounded-full border border-border/50 bg-background/80 hover:bg-accent/50 px-3 h-9 md:h-8 transition duration-150 active:scale-95";
+
 
 /** Desktop-only: compact icon chips shown below the composer (no images). */
 export function StarterChips({ onPick, className = "" }: StarterCardsProps) {
@@ -57,8 +58,8 @@ export function StarterChips({ onPick, className = "" }: StarterCardsProps) {
             onClick={() => handleCardClick(c, onPick)}
             className={chipClass}
           >
-            <c.Icon className="w-[15px] h-[15px] text-foreground/70 shrink-0" strokeWidth={1.9} />
-            <span className="text-[13px] font-medium text-foreground whitespace-nowrap">
+            <c.Icon className="w-[14px] h-[14px] text-foreground/60 shrink-0" strokeWidth={1.8} />
+            <span className="text-[12.5px] font-medium text-foreground/90 whitespace-nowrap">
               {c.title}
             </span>
           </button>
@@ -83,10 +84,10 @@ export function StarterCards({ onPick, className = "" }: StarterCardsProps) {
             key={c.id}
             type="button"
             onClick={() => handleCardClick(c, onPick)}
-            className={`snap-start shrink-0 inline-flex items-center gap-2 h-10 px-3.5 ${chipClass}`}
+            className={`snap-start shrink-0 ${chipClass}`}
           >
-            <c.Icon className="w-4 h-4 text-foreground/70 shrink-0" strokeWidth={1.9} />
-            <span className="text-[13px] font-medium text-foreground whitespace-nowrap">
+            <c.Icon className="w-[14px] h-[14px] text-foreground/60 shrink-0" strokeWidth={1.8} />
+            <span className="text-[12.5px] font-medium text-foreground/90 whitespace-nowrap">
               {c.title}
             </span>
           </button>

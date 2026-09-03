@@ -2,6 +2,10 @@ import { useMemo } from "react";
 
 export type StepItem = {
   index: number;
+  /** Short human name of the step ("Research the market"). */
+  title: string;
+  /** Optional explanation shown under the name. */
+  detail?: string;
   text: string;
 };
 
@@ -35,7 +39,16 @@ export function parseSteps(raw: string): { steps: StepItem[]; remaining: string 
 
   if (lines.length < 1) return { steps: [], remaining: raw };
 
-  const steps: StepItem[] = lines.map((text, i) => ({ index: i + 1, text }));
+  // A step line may name the task and then explain it:
+  //   "Collect the sources — search 5 credible outlets"
+  // We show the name as the card's headline and the rest as its detail, so the
+  // cards read as real task names instead of raw "step 1" rows.
+  const steps: StepItem[] = lines.map((text, i) => {
+    const m = text.match(/^\s*(?:\d+[.)]\s*)?(.{2,70}?)\s*(?:—|–|-{1,2}|:)\s+(.+)$/);
+    const title = (m ? m[1] : text).trim();
+    const detail = m ? m[2].trim() : undefined;
+    return { index: i + 1, title, detail, text };
+  });
   // Strip ALL steps blocks from remaining so they don't leak into markdown.
   const remaining = raw.replace(STEPS_BLOCK_RE, "").trim();
   return { steps, remaining };
@@ -69,7 +82,14 @@ export default function StepFlowCards({ steps }: Props) {
           </span>
           <span className="step-card-inner">
             <span className="step-card-index">{s.index}</span>
-            <span className="step-card-text">{s.text}</span>
+            <span className="step-card-text">
+              <span className="block font-medium leading-snug">{s.title}</span>
+              {s.detail && (
+                <span className="mt-0.5 block text-[12px] leading-snug opacity-75">
+                  {s.detail}
+                </span>
+              )}
+            </span>
           </span>
         </div>
       ))}

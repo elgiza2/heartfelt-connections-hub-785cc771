@@ -56,6 +56,7 @@ export async function tryFastChat({
   onReasoning,
   force,
   thinking,
+  maxTokens,
 }: {
   messages: FastMsg[];
   authToken: string;
@@ -70,6 +71,8 @@ export async function tryFastChat({
   force?: boolean;
   /** The user's deep-thinking toggle for this turn. */
   thinking?: boolean;
+  /** Output budget for this turn (trivial turns use a small one for speed). */
+  maxTokens?: number;
 }): Promise<FastChatOutcome> {
   let resp: Response;
   try {
@@ -84,7 +87,7 @@ export async function tryFastChat({
       body: JSON.stringify({
         messages,
         thinking: thinking === true,
-        ...(force ? { force: true, maxTokens: 8192 } : {}),
+        ...(force ? { force: true, maxTokens: 8192 } : maxTokens ? { maxTokens } : {}),
       }),
       signal,
     });

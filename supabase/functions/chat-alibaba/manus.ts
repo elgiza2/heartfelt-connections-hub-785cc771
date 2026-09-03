@@ -106,6 +106,51 @@ const TOOLS = [
   {
     type: "function",
     function: {
+      name: "scrape_page",
+      description:
+        "Render a URL in a real cloud browser and return clean markdown. Use for pages that plain fetching cannot read (JS apps, anti-bot, paywalled layout).",
+      parameters: {
+        type: "object",
+        properties: { url: { type: "string" } },
+        required: ["url"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "crawl_site",
+      description:
+        "Crawl a website or section and return markdown for up to `limit` pages. Use when the answer spans many pages of one site.",
+      parameters: {
+        type: "object",
+        properties: {
+          url: { type: "string" },
+          limit: { type: "number", description: "Max pages, 1-50 (default 10)" },
+        },
+        required: ["url"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "extract_data",
+      description:
+        "Extract structured data from one or more URLs using an instruction (prices, listings, tables, contacts). Returns JSON.",
+      parameters: {
+        type: "object",
+        properties: {
+          urls: { type: "array", items: { type: "string" } },
+          prompt: { type: "string", description: "What to extract, precisely" },
+        },
+        required: ["urls", "prompt"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "remember_fact",
       description: "Store a durable fact about this user for future turns.",
       parameters: {
@@ -256,6 +301,45 @@ export async function runPrimaryAgent(opts: {
         used.add(id);
         briefs.push(`### ${profile.label} — ${goal}\n${brief}`);
         return brief.slice(0, 4000);
+      }
+      case "scrape_page": {
+        const url = String(args?.url ?? "").trim();
+        const { scrapePage } = await import("../_shared/hyperTools.ts");
+        const page = await scrapePage(admin as any, url);
+        if (!page) return "page unreadable";
+        evidence.push(`SOURCE ${url}\n${page.markdown.slice(0, 6000)}`);
+        if (!sources.some((source) => source.url === url)) {
+          sources.push({ title: page.title || url, url });
+        }
+        return page.markdown.slice(0, 6000);
+      }
+      case "crawl_site": {
+        const url = String(args?.url ?? "").trim();
+        const limit = Number(args?.limit) || 10;
+        const { crawlSite } = await import("../_shared/hyperTools.ts");
+        const pages = await crawlSite(admin as any, url, limit);
+        if (!pages?.length) return "crawl returned nothing";
+        for (const page of pages.slice(0, 8)) {
+          evidence.push(`SOURCE ${page.url}\n${page.markdown.slice(0, 3000)}`);
+          if (page.url && !sources.some((source) => source.url === page.url)) {
+            sources.push({ title: page.url, url: page.url });
+          }
+        }
+        return pages
+          .slice(0, 8)
+          .map((page) => `# ${page.url}\n${page.markdown.slice(0, 1500)}`)
+          .join("\n\n")
+          .slice(0, 8000);
+      }
+      case "extract_data": {
+        const urls = Array.isArray(args?.urls) ? args.urls.map((u: unknown) => String(u)) : [];
+        const prompt = String(args?.prompt ?? "").trim();
+        const { extractData } = await import("../_shared/hyperTools.ts");
+        const data = await extractData(admin as any, urls, prompt);
+        if (data == null) return "extraction returned nothing";
+        const text = JSON.stringify(data).slice(0, 8000);
+        evidence.push(`EXTRACTED (${urls.join(", ")})\n${text}`);
+        return text;
       }
       case "remember_fact": {
         const key = String(args?.key ?? "").trim().slice(0, 120);

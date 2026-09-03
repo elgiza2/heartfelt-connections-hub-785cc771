@@ -3,14 +3,32 @@ import { getAnonFingerprint } from "@/lib/anonFingerprint";
 import { isFastLaneEligible, tryFastChat } from "@/lib/chat/fastChat";
 import { readChatModelPreferences } from "@/lib/chatModelPreferences";
 
-/** The deep-thinking composer toggle, read fresh for every turn. */
+/**
+ * Internal reasoning is ON by default: users expect to see the thinking trace
+ * without hunting for a toggle. Only an explicit opt-out turns it off.
+ */
 function deepThinkingEnabled(): boolean {
   try {
-    return readChatModelPreferences().deepThinking === true;
+    return readChatModelPreferences().deepThinking !== false;
   } catch {
-    return false;
+    return true;
   }
 }
+
+/**
+ * Greetings and one-liners ("hi", "شكرا", "ok") must feel instant: no thinking
+ * budget and a small output budget, so the answer lands in well under a second.
+ */
+function isTrivialTurn(messages: { role: string; content: unknown }[]): boolean {
+  const last = messages[messages.length - 1];
+  if (!last || typeof last.content !== "string") return false;
+  const t = last.content.trim();
+  if (t.length > 60 || /\n/.test(t)) return false;
+  return /^(hi|hey|hello|yo|sup|thanks|thank you|ok|okay|good (morning|evening|night)|اهلا|أهلا|هاي|مرحبا|السلام عليكم|صباح الخير|مساء الخير|شكرا|شكرًا|تمام|ازيك|إزيك|كيف الحال|عامل ايه)\b[\s!.،؟?]*$/i.test(
+    t,
+  );
+}
+
 
 
 export const GUEST_QUOTA_ERROR = "GUEST_QUOTA_EXCEEDED";
@@ -337,7 +355,8 @@ export async function streamChat({
         onModel,
         onUsage,
         onReasoning,
-        thinking: deepThinkingEnabled(),
+        thinking: deepThinkingEnabled() && !isTrivialTurn(messages),
+        ...(isTrivialTurn(messages) ? { maxTokens: 700 } : {}),
       });
 
       if (outcome === "answered") {

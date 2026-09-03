@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Check, ChevronDown, Loader2, Monitor } from "lucide-react";
+import { Check, Loader2 } from "lucide-react";
 import { useLongRun } from "@/hooks/useLongRun";
 import { clearActiveComputerRun, setActiveComputerRun } from "@/lib/computer/activeRun";
 import { cleanTrace, isInternalTraceLine } from "@/lib/computer/traceCleanup";
@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 /**
  * Computer surface, reduced to two things only:
  *   1. a single thinking badge in the chat while the agent works,
- *   2. the computer card itself — clean rounded frame, one open/close toggle,
+ *   2. the computer card itself — a clean rounded screen with no chrome,
  *      no titles, no buttons, no step lists.
  * The final answer is rendered as plain chat text.
  */
@@ -24,7 +24,6 @@ export function ComputerPreview({
   onClose?: () => void;
 }) {
   const { run, events, question, answer, approvePlan } = useLongRun(runId);
-  const [open, setOpen] = useState(true);
   const [summary, setSummary] = useState<string | null>(null);
   const [reply, setReply] = useState("");
   const [approving, setApproving] = useState(false);
@@ -226,46 +225,36 @@ export function ComputerPreview({
         </div>
       )}
 
-      {/* computer card — clean frame, single open/close toggle, nothing else */}
-      {hasScreen && (
-        <div className="overflow-hidden rounded-2xl border border-border/40 bg-card/30">
-          <button
-            type="button"
-            onClick={() => setOpen((v) => !v)}
-            aria-expanded={open}
-            aria-label={open ? "إغلاق شاشة الكمبيوتر" : "فتح شاشة الكمبيوتر"}
-            className="flex w-full items-center justify-between px-3 py-2 text-muted-foreground transition-colors hover:text-foreground"
-          >
-            <Monitor className="h-4 w-4" />
-            <ChevronDown
-              className={`h-4 w-4 transition-transform ${open ? "rotate-180" : ""}`}
-            />
-          </button>
-
-          {open && (
-            <div className="relative aspect-[16/10] w-full bg-black/80">
-              {url ? (
-                <iframe
-                  key={url}
-                  src={url}
-                  title="Megsy Computer"
-                  className="absolute inset-0 h-full w-full border-0"
-                  allow="clipboard-read; clipboard-write"
-                  sandbox="allow-scripts allow-same-origin allow-forms"
-                />
-              ) : lastShot ? (
-                <img
-                  src={lastShot}
-                  alt=""
-                  loading="lazy"
-                  className="absolute inset-0 h-full w-full object-cover object-top"
-                />
-              ) : null}
-              {url && <div className="absolute inset-0" aria-hidden />}
-            </div>
-          )}
+      {/* computer card — a bare rounded screen: no header, no icons, no buttons.
+          It appears as soon as the computer is in use, even before the live
+          view or the first screenshot exists (soft shimmer placeholder). */}
+      {(hasScreen || active) && (
+        <div className="overflow-hidden rounded-2xl border border-border/40 bg-black/80">
+          <div className="relative aspect-[16/10] w-full">
+            {url ? (
+              <iframe
+                key={url}
+                src={url}
+                title="Megsy Computer"
+                className="absolute inset-0 h-full w-full border-0"
+                allow="clipboard-read; clipboard-write"
+                sandbox="allow-scripts allow-same-origin allow-forms"
+              />
+            ) : lastShot ? (
+              <img
+                src={lastShot}
+                alt=""
+                loading="lazy"
+                className="absolute inset-0 h-full w-full object-cover object-top"
+              />
+            ) : (
+              <div className="absolute inset-0 animate-pulse bg-gradient-to-br from-white/[0.06] via-white/[0.02] to-transparent" />
+            )}
+            {url && <div className="absolute inset-0" aria-hidden />}
+          </div>
         </div>
       )}
+
 
       {/* final answer, plain text */}
       {finished && finalText && (
