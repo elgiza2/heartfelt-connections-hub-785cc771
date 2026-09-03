@@ -2,7 +2,9 @@ import { defineConfig } from "vite";
 import type { Plugin, ViteDevServer } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
+import fs from "fs";
 import { createHmac } from "crypto";
+
 import { visualizer } from "rollup-plugin-visualizer";
 import { compression, defineAlgorithm } from "vite-plugin-compression2";
 import { constants as zlibConstants } from "zlib";
