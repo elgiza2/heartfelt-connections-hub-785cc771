@@ -36,7 +36,8 @@ const handleCardClick = (
 };
 
 const chipClass =
-  "flex items-center gap-2 rounded-lg border border-border/40 bg-background hover:bg-accent/60 px-3.5 h-11 md:h-9 shadow-sm transition duration-150 active:scale-95";
+  "flex items-center gap-1.5 rounded-full border border-border/50 bg-background/80 hover:bg-accent/50 px-3 h-9 md:h-8 transition duration-150 active:scale-95";
+
 
 /** Desktop-only: compact icon chips shown below the composer (no images). */
 export function StarterChips({ onPick, className = "" }: StarterCardsProps) {
