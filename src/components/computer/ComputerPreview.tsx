@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Check, ChevronDown, Loader2, Monitor } from "lucide-react";
+import { Check, Loader2 } from "lucide-react";
 import { useLongRun } from "@/hooks/useLongRun";
 import { clearActiveComputerRun, setActiveComputerRun } from "@/lib/computer/activeRun";
 import { cleanTrace, isInternalTraceLine } from "@/lib/computer/traceCleanup";
@@ -24,7 +24,6 @@ export function ComputerPreview({
   onClose?: () => void;
 }) {
   const { run, events, question, answer, approvePlan } = useLongRun(runId);
-  const [open, setOpen] = useState(true);
   const [summary, setSummary] = useState<string | null>(null);
   const [reply, setReply] = useState("");
   const [approving, setApproving] = useState(false);
