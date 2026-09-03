@@ -1,6 +1,7 @@
 import { memo, useMemo } from "react";
 import { m as motion } from "framer-motion";
 import { Loader2 } from "lucide-react";
+import MegsyStar from "@/components/files/MegsyStar";
 import { resolveToolActivity } from "@/lib/toolActivity";
 import ToolIcon from "./primitives/ToolIcon";
 import StatusBadge from "./primitives/StatusBadge";
