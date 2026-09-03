@@ -33,6 +33,7 @@ export async function runComputerTurn({
   text,
   userMsg,
   localTurnId,
+  attachments,
   setMessages,
   setInput,
   setAttachedFiles,
@@ -117,17 +118,24 @@ export async function runComputerTurn({
       /* plan is optional */
     }
 
-    // 3 — start the run.
+    // 3 — start the Browser Use task. This is the stable computer runtime;
+    // long-run remains available for other autonomous workflows.
     try {
-      const { startLongRun } = await import("@/hooks/useLongRun");
-      const run = await startLongRun(prompt, cid);
-      if (!run?.id) throw new Error("تعذّر بدء المهمة على الكمبيوتر. حاول تاني.");
-      setActiveComputerRun(run.id);
+      const { createComputerTask, computerErrorMessage } = await import("@/lib/computer/client");
+      const task = await createComputerTask({
+        prompt,
+        conversation_id: cid,
+        attachments,
+      });
+      if (!task?.task_id || task.status === "failed") {
+        throw new Error(computerErrorMessage(task?.error) || "تعذّر بدء المهمة على الكمبيوتر. حاول تاني.");
+      }
+      setActiveComputerRun(task.task_id);
       let assistantId: string | undefined;
       if (cid) {
         assistantId = await saveMessage(cid, "assistant", intro, undefined, {
-          kind: "longRun",
-          longRunId: run.id,
+          kind: "computerTask",
+          computerTaskId: task.task_id,
           computerPlan: plan,
         });
         if (assistantId) ownInsertedIdsRef.current.add(assistantId);
@@ -139,7 +147,7 @@ export async function runComputerTurn({
                 ...m,
                 id: assistantId || m.id,
                 content: intro,
-                longRunId: run.id,
+                 computerTaskId: task.task_id,
                 computerPlan: plan,
                  toolParts: [{ ...computerTool, state: "done" }],
               }
