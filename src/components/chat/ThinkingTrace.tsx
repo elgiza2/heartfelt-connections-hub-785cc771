@@ -1,13 +1,6 @@
 import { memo, useEffect, useMemo, useRef, useState } from "react";
-import {
-  ChevronDown,
-  FileText,
-  Globe,
-  Image as ImageIcon,
-  Plug,
-  Search,
-  Terminal,
-} from "lucide-react";
+import { ChevronDown, Globe } from "lucide-react";
+import ToolIcon from "./primitives/ToolIcon";
 import MegsyStar from "@/components/branding/MegsyStar";
 import { BrandLogo } from "@/components/brand/BrandLogo";
 import { t as uiT, useUserLang } from "@/lib/authI18n";
