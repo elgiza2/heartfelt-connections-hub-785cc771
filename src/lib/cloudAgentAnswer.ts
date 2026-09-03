@@ -10,7 +10,7 @@
  * code, docs, slides briefs and long multi-hour tasks — whenever the text model
  * path is unavailable.
  */
-import { createComputerTask, pollComputerTask } from "@/lib/computer/client";
+import { createComputerTask, pollComputerTask, stopComputerTask } from "@/lib/computer/client";
 
 export interface CloudAgentAnswer {
   text: string;
@@ -67,7 +67,10 @@ export async function runCloudAgentAnswer(
   const steps: string[] = [];
 
   while (Date.now() < deadline) {
-    if (options.signal?.aborted) return steps.length ? { text: "", steps, taskId: created.task_id } : null;
+    if (options.signal?.aborted) {
+      await stopComputerTask(created.task_id).catch(() => undefined);
+      return steps.length ? { text: "", steps, taskId: created.task_id } : null;
+    }
     await sleep(2_500);
     const snapshot = await pollComputerTask(created.task_id).catch(() => null);
     if (!snapshot?.task) continue;
@@ -83,5 +86,6 @@ export async function runCloudAgentAnswer(
     }
     if (snapshot.task.status === "failed") return null;
   }
+  await stopComputerTask(created.task_id).catch(() => undefined);
   return null;
 }

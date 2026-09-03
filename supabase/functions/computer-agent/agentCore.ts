@@ -304,7 +304,8 @@ function normalizeStatus(raw: unknown): string {
   if (["finished", "completed", "success", "succeeded", "done"].includes(s)) return "done";
   if (["failed", "error", "canceled", "cancelled", "stopped"].includes(s)) return "failed";
   if (["pending", "queued", "created"].includes(s)) return "pending";
-  return s ? "running" : "running";
+  if (["started", "running", "in_progress"].includes(s)) return "running";
+  return s ? "failed" : "pending";
 }
 
 /** Pulls step/file info out of a provider payload without leaking its shape. */
@@ -404,6 +405,13 @@ export async function handleComputerAgent(payload: ComputerPayload | null): Prom
       const providerId = String(
         res.data?.task_id ?? res.data?.id ?? res.data?.data?.task_id ?? "",
       );
+      if (!providerId) {
+        await supabase
+          .from("computer_tasks")
+          .update({ status: "failed", error: "provider_error", updated_at: new Date().toISOString() })
+          .eq("id", taskId);
+        return { status: 200, body: { task_id: taskId, status: "failed", error: "provider_error" } };
+      }
       await supabase
         .from("computer_tasks")
         .update({
@@ -441,10 +449,25 @@ export async function handleComputerAgent(payload: ComputerPayload | null): Prom
         task.key_id,
       );
       if (!res.ok) {
-        return { status: 200, body: { task: publicTask(task), events: await listEvents(supabase, task.id) } };
+        const patch = { status: "failed", error: "provider_error", updated_at: new Date().toISOString() };
+        await supabase.from("computer_tasks").update(patch).eq("id", task.id);
+        return {
+          status: 200,
+          body: { task: publicTask({ ...task, ...patch }), events: await listEvents(supabase, task.id) },
+        };
       }
 
       const info = extractProgress(res.data);
+      let liveUrl: string | null = null;
+      const sessionId = String(res.data?.sessionId ?? res.data?.session_id ?? "");
+      if (sessionId && !["done", "failed"].includes(info.status)) {
+        const session = await callUpstream(
+          supabase,
+          { path: `/sessions/${sessionId}`, method: "GET" },
+          task.key_id,
+        );
+        if (session.ok) liveUrl = String(session.data?.liveUrl ?? session.data?.live_url ?? "") || null;
+      }
       // Persist any new steps (dedupe on title+index count).
       const existing = await listEvents(supabase, task.id);
       if (info.events.length > existing.length) {
@@ -490,7 +513,7 @@ export async function handleComputerAgent(payload: ComputerPayload | null): Prom
       return {
         status: 200,
         body: {
-          task: publicTask({ ...task, ...patch }),
+          task: { ...publicTask({ ...task, ...patch }), live_url: liveUrl },
           events: await listEvents(supabase, task.id),
         },
       };

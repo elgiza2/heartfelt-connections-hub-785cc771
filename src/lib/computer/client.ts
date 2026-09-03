@@ -16,6 +16,7 @@ export interface ComputerTask {
   files: ComputerFile[];
   error: string | null;
   prompt: string;
+  live_url?: string | null;
 }
 
 export interface ComputerEvent {

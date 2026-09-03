@@ -8,8 +8,8 @@
 
 ## Full-stack stabilization
 - [ ] Audit chat UI, text, thinking, plans, computer, and task flows
-- [ ] Fix infinite loading and disappearing transcript
-- [ ] Fix backend agent/task lifecycle and provider failures
+- [x] Fix infinite loading and disappearing transcript
+- [x] Fix backend agent/task lifecycle and provider failures
 - [ ] Verify guest and authenticated flows on mobile and desktop
 - [ ] Run targeted tests and security checks
 
@@ -20,4 +20,4 @@
 - `src/lib/chat/proxyCore.ts` + `api/chat.ts` + Vite dev plugin serve chat from our own serverless runtime via abliteration.ai.
 - `streamChat.ts` and `fastChat.ts` fall back to `/api/chat` on 5xx/404/network failure from the Supabase edge functions.
 - Production needs `ABLITERATION_API_KEY` set in the hosting env (already in local `.env`).
-- Still pending: redeploy Supabase edge functions when the platform recovers; computer (Browser Use) path still runs through `/api/computer-agent`.
+- Explicit computer turns now use the working Browser Use computer-task runtime directly; the task UI has live progress, a visible computer surface, and a hard timeout.

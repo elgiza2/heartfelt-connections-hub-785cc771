@@ -6,32 +6,52 @@
  * thinking trace above it, so this surface only carries what the task actually
  * produced (text + files) once it is finished.
  */
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  computerErrorMessage,
   pollComputerTask,
+  stopComputerTask,
   type ComputerTask,
+  type ComputerEvent,
 } from "@/lib/computer/client";
+import ThinkingTrace from "@/components/chat/ThinkingTrace";
+import { clearActiveComputerRun, setActiveComputerRun } from "@/lib/computer/activeRun";
 
 interface Props {
   taskId: string;
 }
 
 const POLL_MS = 3000;
+const TASK_TIMEOUT_MS = 15 * 60 * 1000;
 
 export default function ComputerTaskCard({ taskId }: Props) {
   const [task, setTask] = useState<ComputerTask | null>(null);
+  const [events, setEvents] = useState<ComputerEvent[]>([]);
+  const [timedOut, setTimedOut] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     let cancelled = false;
+    const deadline = Date.now() + TASK_TIMEOUT_MS;
 
     const tick = async () => {
       try {
+        if (Date.now() >= deadline) {
+          setTimedOut(true);
+          clearActiveComputerRun(taskId);
+          await stopComputerTask(taskId).catch(() => undefined);
+          return;
+        }
         const res = await pollComputerTask(taskId);
         if (cancelled) return;
         setTask(res.task);
+        setEvents(res.events ?? []);
         const finished = res.task.status === "done" || res.task.status === "failed";
-        if (!finished) timer.current = setTimeout(tick, POLL_MS);
+        if (finished) clearActiveComputerRun(taskId);
+        else {
+          setActiveComputerRun(taskId);
+          timer.current = setTimeout(tick, POLL_MS);
+        }
       } catch {
         if (!cancelled) timer.current = setTimeout(tick, POLL_MS * 2);
       }
@@ -41,18 +61,54 @@ export default function ComputerTaskCard({ taskId }: Props) {
     return () => {
       cancelled = true;
       if (timer.current) clearTimeout(timer.current);
+      clearActiveComputerRun(taskId);
     };
   }, [taskId]);
 
   const running = !task || task.status === "pending" || task.status === "running";
   const files = task?.files ?? [];
+  const traceSteps = useMemo(() => events.map((event) => event.title).filter(Boolean), [events]);
+  const traceText = useMemo(
+    () => events.map((event) => event.detail).filter((value): value is string => !!value).join("\n\n"),
+    [events],
+  );
+  const liveUrl = task?.live_url ? `${task.live_url}${task.live_url.includes("?") ? "&" : "?"}view_only=true` : null;
 
-  // Running: one hairline shimmer, nothing else.
   if (running) {
     return (
-      <div className="my-2 h-[3px] w-full max-w-[320px] overflow-hidden rounded-full bg-foreground/[0.07]">
-        <div className="h-full w-1/3 rounded-full bg-foreground/25 motion-safe:animate-[computer-scan_1.5s_ease-in-out_infinite]" />
+      <div className="my-2 flex flex-col gap-2.5">
+        <ThinkingTrace
+          active
+          status={task?.progress || events.at(-1)?.title || ""}
+          steps={traceSteps}
+          text={traceText}
+          tool="browser"
+          className="mb-0"
+        />
+        <div className="overflow-hidden rounded-2xl border border-border/40 bg-foreground/[0.04]">
+          <div className="relative aspect-[16/10] w-full">
+            {liveUrl ? (
+              <iframe
+                src={liveUrl}
+                title="Megsy Computer"
+                className="absolute inset-0 h-full w-full border-0"
+                allow="clipboard-read; clipboard-write"
+                sandbox="allow-scripts allow-same-origin allow-forms"
+              />
+            ) : (
+              <div className="absolute inset-0 bg-gradient-to-br from-foreground/[0.06] via-foreground/[0.02] to-transparent motion-safe:animate-pulse" />
+            )}
+          </div>
+        </div>
       </div>
+    );
+  }
+
+  if (timedOut || task?.status === "failed") {
+    return (
+      <p className="my-2 text-[13px] leading-relaxed text-destructive">
+        {timedOut ? "المهمة استغرقت وقتًا أطول من المتوقع وتم إيقافها." : computerErrorMessage(task.error)}
+      </p>
     );
   }
 
