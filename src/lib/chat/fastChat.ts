@@ -91,6 +91,16 @@ export async function tryFastChat({
       signal,
     });
   try {
+    // Primary runtime: this app's own serverless chat endpoint. It streams the
+    // model's reasoning deltas, so the thinking panel always has content.
+    resp = await viaProxy();
+    if (!resp.ok || !(resp.headers.get("content-type") || "").includes("text/event-stream")) {
+      try { await resp.body?.cancel(); } catch { /* ignore */ }
+      throw new Error("PROXY_UNAVAILABLE");
+    }
+  } catch (proxyError) {
+    if (signal?.aborted) throw proxyError;
+  try {
     resp = await fetch(FAST_URL, {
       method: "POST",
       headers: {
@@ -116,11 +126,8 @@ export async function tryFastChat({
     }
   } catch (e) {
     if (signal?.aborted) throw e;
-    try {
-      resp = await viaProxy();
-    } catch {
-      return "escalate";
-    }
+    return "escalate";
+  }
   }
 
 

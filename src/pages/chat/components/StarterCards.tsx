@@ -36,7 +36,9 @@ const handleCardClick = (
 };
 
 const chipClass =
-  "flex items-center gap-1.5 rounded-full border border-border/50 bg-background/80 hover:bg-accent/50 px-3 h-9 md:h-8 transition duration-150 active:scale-95";
+  "group flex items-center gap-1.5 rounded-full border border-border/40 bg-muted/40 backdrop-blur-sm " +
+  "px-2.5 h-7 shadow-[0_1px_2px_hsl(var(--foreground)/0.04)] " +
+  "hover:bg-muted/70 hover:border-border/70 transition-colors duration-150 active:scale-[0.97]";
 
 
 /** Desktop-only: compact icon chips shown below the composer (no images). */
@@ -58,8 +60,11 @@ export function StarterChips({ onPick, className = "" }: StarterCardsProps) {
             onClick={() => handleCardClick(c, onPick)}
             className={chipClass}
           >
-            <c.Icon className="w-[14px] h-[14px] text-foreground/60 shrink-0" strokeWidth={1.8} />
-            <span className="text-[12.5px] font-medium text-foreground/90 whitespace-nowrap">
+            <c.Icon
+              className="w-[13px] h-[13px] text-muted-foreground shrink-0 transition-colors group-hover:text-foreground"
+              strokeWidth={1.75}
+            />
+            <span className="text-[11.5px] font-medium tracking-[-0.01em] text-foreground/80 whitespace-nowrap transition-colors group-hover:text-foreground">
               {c.title}
             </span>
           </button>
@@ -86,8 +91,11 @@ export function StarterCards({ onPick, className = "" }: StarterCardsProps) {
             onClick={() => handleCardClick(c, onPick)}
             className={`snap-start shrink-0 ${chipClass}`}
           >
-            <c.Icon className="w-[14px] h-[14px] text-foreground/60 shrink-0" strokeWidth={1.8} />
-            <span className="text-[12.5px] font-medium text-foreground/90 whitespace-nowrap">
+            <c.Icon
+              className="w-[13px] h-[13px] text-muted-foreground shrink-0 transition-colors group-hover:text-foreground"
+              strokeWidth={1.75}
+            />
+            <span className="text-[11.5px] font-medium tracking-[-0.01em] text-foreground/80 whitespace-nowrap transition-colors group-hover:text-foreground">
               {c.title}
             </span>
           </button>
