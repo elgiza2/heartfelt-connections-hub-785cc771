@@ -1,16 +1,15 @@
 # Roadmap
 
-- [x] Trace the current chat-alibaba client contract
-- [x] Implement a compatible local chat-alibaba Edge Function
-- [x] Wire the existing 2026 agent instructions and live-search capability
-- [x] Verify the chat flow and error handling
-- [x] Live web research pre-pass in every chat turn (planner + Brave/Gateway search + page reading + citations)
-- [x] Internal multi-agent router (coder/researcher/analyst/writer/operator/general) with per-agent model ladders, coding on Kimi K3
-- [ ] Connections screen for user-provided API keys (Brave, others)
-- [ ] Parallel specialist sub-agents for long research reports
-- [x] Rebuild referral page around the approved artwork with a clean, icon-free interface
-
-## 2026-09-02
-- [ ] إعادة ربط موصّل Telegram في الوركسبيس الجديد
-- [ ] إزالة الوميض/الريفرش عند التنقل بين الصفحات وعند أول رسالة
-- [ ] تحسين تغطية الترجمة المصرية في معظم الصفحات
+## Requested (current batch)
+- [ ] Move server logic off Supabase Edge Functions into app server routes (`api/`) — publish path that doesn't depend on Supabase functions
+- [ ] Computer card in chat: clean visual, no raw text/icons/buttons clutter; show it when the computer tool is used
+- [ ] Internal thinking (reasoning) must stream and render in chat
+- [ ] Speed: fast/short answers for trivial messages ("اهلا"), reduce latency
+- [ ] Plan/thinking blocks: human-readable task names instead of raw "step 1"
+- [ ] Chat must work for signed-out users
+- [ ] Model must know ALL our tools (full tool catalog in system prompt)
+- [ ] Clean tool icons
+- [ ] Add all tools from browser-use cloud + Hyperbrowser, incl. their MCP endpoints
+- [ ] Global memory system across all chats
+- [ ] Smaller, cleaner AI text sizes on chat page
+- [ ] Chips: rounded + pill/rect mix, cleaner, slightly smaller
