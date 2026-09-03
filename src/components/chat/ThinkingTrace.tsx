@@ -117,10 +117,10 @@ const ThinkingTrace = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active, status, label, reasoningLines, historyRef.current.length]);
 
-  const ToolIcon = tool ? TOOL_ICONS[tool] : undefined;
-
   // Nothing to show at all.
   if (!hasBody && !active) return null;
+
+  const pulse = running ? "motion-safe:animate-pulse" : "";
 
   return (
     <div className={`mb-3 ${className}`} dir={rtl ? "rtl" : undefined}>
@@ -131,18 +131,14 @@ const ThinkingTrace = ({
         className="flex w-full items-center gap-2 py-0.5 text-start"
       >
         {active ? (
-          ToolIcon ? (
+          tool ? (
             <ToolIcon
-              className={`h-3.5 w-3.5 shrink-0 text-[var(--megsy-blue)] ${
-                running ? "motion-safe:animate-pulse" : ""
-              }`}
+              name={tool}
+              size={14}
+              className={`text-[var(--megsy-blue)] ${pulse}`}
             />
           ) : (
-            <MegsyStar
-              className={`h-3.5 w-3.5 shrink-0 text-[var(--megsy-blue)] ${
-                running ? "motion-safe:animate-pulse" : ""
-              }`}
-            />
+            <MegsyStar className={`h-3.5 w-3.5 shrink-0 text-[var(--megsy-blue)] ${pulse}`} />
           )
         ) : (
           <BrandLogo className="h-3.5 w-3.5 shrink-0" />
