@@ -12,6 +12,7 @@
  * Response: OpenAI-style SSE chunks, terminated by `data: [DONE]`.
  */
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+import { dataAnonKey, dataIssuer, dataUrl } from "../_shared/dataProject.ts";
 
 const fastCorsHeaders = {
   ...corsHeaders,
@@ -91,7 +92,7 @@ function decodeClaims(token: string): Claims | null {
     if (!claims.exp || claims.exp * 1000 < Date.now()) return null;
     if (typeof claims.sub !== "string" || !claims.sub) return null;
     if (claims.role && claims.role !== "authenticated") return null;
-    const expectedIss = `${(Deno.env.get("SUPABASE_URL") || "").replace(/\/$/, "")}/auth/v1`;
+    const expectedIss = dataIssuer();
     if (claims.iss && expectedIss && claims.iss !== expectedIss) return null;
     return claims;
   } catch {
@@ -107,8 +108,8 @@ async function confirmSignature(token: string, expectedSub: string): Promise<voi
   if (inflight.has(token)) return;
   inflight.add(token);
   try {
-    const url = Deno.env.get("SUPABASE_URL");
-    const anon = Deno.env.get("SUPABASE_ANON_KEY");
+    const url = dataUrl();
+    const anon = dataAnonKey();
     if (!url || !anon) return;
     const r = await fetch(`${url.replace(/\/$/, "")}/auth/v1/user`, {
       headers: { apikey: anon, Authorization: `Bearer ${token}` },
@@ -200,7 +201,7 @@ Deno.serve(async (req) => {
   // Guests may chat without signing in. Identity is best-effort: a verified
   // user id, else a guest bucket keyed by fingerprint or client IP. Guests are
   // never blocked outright — only rate limited (see `guestAllowance`).
-  const anonKey = Deno.env.get("SUPABASE_ANON_KEY") || "";
+  const anonKey = dataAnonKey();
   const token = (req.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "").trim();
   const isAppToken = Boolean(token) && token !== anonKey;
   const userId = isAppToken ? verifiedUserId(token) : null;

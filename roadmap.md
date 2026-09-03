@@ -14,6 +14,7 @@
 - [x] Tool icons: one shared `ToolIcon` (brand mark or quiet lucide glyph) used by `ThinkingTrace` and `ParallelAgentsPanel`
 
 ## Open
-- [ ] Move server logic off Supabase Edge Functions into app server routes (`api/`) — large migration, needs its own pass (chat-alibaba, chat-fast, computer-agent, long-run, deep-research)
+- [x] Second Supabase account for compute: `src/lib/edgeRuntime.ts` routes chat/computer/long-run to `VITE_COMPUTE_SUPABASE_URL` + `VITE_COMPUTE_SUPABASE_ANON_KEY` when set; functions read the data project through `_shared/dataProject.ts` (`DATA_SUPABASE_URL` / `DATA_SUPABASE_ANON_KEY` / `DATA_SUPABASE_SERVICE_ROLE_KEY`)
+- [ ] Optional: also route `long-run` / `deep-research` calls that still go through `supabase.functions.invoke` (needs a small invoke wrapper)
 - [ ] Browser Use Cloud extra endpoints (profiles, files, structured task output) + provider MCP endpoints
 

@@ -6,6 +6,7 @@
  * "Megsy Computer".
  */
 import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { dataServiceKey, dataUrl } from "../_shared/dataProject.ts";
 
 // Browser Use Cloud API v2 — https://docs.browser-use.com/cloud/api-v2
 const API_BASE = Deno.env.get("BROWSER_USE_API_BASE") || "https://api.browser-use.com/api/v2";
@@ -38,8 +39,8 @@ interface KeyRow {
 }
 
 function admin(): SupabaseClient {
-  const url = Deno.env.get("SUPABASE_URL");
-  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  const url = dataUrl();
+  const serviceKey = dataServiceKey();
   if (!url || !serviceKey) throw new Error("Supabase server credentials are not configured");
   return createClient(url, serviceKey, { auth: { persistSession: false } });
 }

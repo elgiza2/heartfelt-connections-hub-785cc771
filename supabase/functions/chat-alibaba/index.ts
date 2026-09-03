@@ -12,6 +12,7 @@ import { profileModels, profileSystem, routeProfile } from "./router.ts";
 import { type CallFn, deliveryContract } from "./orchestrator.ts";
 import { runPrimaryAgent } from "./manus.ts";
 import { runCloudAgent } from "../_shared/cloudAgents.ts";
+import { dataAnonKey, dataServiceKey, dataUrl } from "../_shared/dataProject.ts";
 
 
 
@@ -244,9 +245,11 @@ Deno.serve(async (req) => {
     return json({ error: "Invalid JSON body" }, 400);
   }
 
-  const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
-  const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
-  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+  // Data may live on a different Supabase account than the one running this
+  // function (see `_shared/dataProject.ts`).
+  const supabaseUrl = dataUrl();
+  const anonKey = dataAnonKey();
+  const serviceKey = dataServiceKey();
   if (!supabaseUrl || !serviceKey) return json({ error: "Server misconfigured" }, 503);
   const admin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
 
