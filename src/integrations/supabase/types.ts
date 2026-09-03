@@ -14,6 +14,51 @@ export type Database = {
   }
   public: {
     Tables: {
+      abliteration_keys: {
+        Row: {
+          api_key: string
+          cooldown_until: string | null
+          created_at: string
+          created_by: string | null
+          failure_count: number
+          id: string
+          label: string | null
+          last_error: string | null
+          last_used_at: string | null
+          priority: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          api_key: string
+          cooldown_until?: string | null
+          created_at?: string
+          created_by?: string | null
+          failure_count?: number
+          id?: string
+          label?: string | null
+          last_error?: string | null
+          last_used_at?: string | null
+          priority?: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          api_key?: string
+          cooldown_until?: string | null
+          created_at?: string
+          created_by?: string | null
+          failure_count?: number
+          id?: string
+          label?: string | null
+          last_error?: string | null
+          last_used_at?: string | null
+          priority?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       ad_watch_progress: {
         Row: {
           ads_watched: number
@@ -2411,6 +2456,51 @@ export type Database = {
           status?: string
           updated_at?: string
           used_this_month?: number
+        }
+        Relationships: []
+      }
+      browser_use_keys: {
+        Row: {
+          api_key: string
+          cooldown_until: string | null
+          created_at: string
+          created_by: string | null
+          failure_count: number
+          id: string
+          label: string | null
+          last_error: string | null
+          last_used_at: string | null
+          priority: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          api_key: string
+          cooldown_until?: string | null
+          created_at?: string
+          created_by?: string | null
+          failure_count?: number
+          id?: string
+          label?: string | null
+          last_error?: string | null
+          last_used_at?: string | null
+          priority?: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          api_key?: string
+          cooldown_until?: string | null
+          created_at?: string
+          created_by?: string | null
+          failure_count?: number
+          id?: string
+          label?: string | null
+          last_error?: string | null
+          last_used_at?: string | null
+          priority?: number
+          status?: string
+          updated_at?: string
         }
         Relationships: []
       }

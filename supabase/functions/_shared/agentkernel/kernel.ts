@@ -610,6 +610,11 @@ export async function tickRun(supabase: SupabaseClient, run: RunRow): Promise<Ru
     .map((text) => String(text ?? "").trim())
     .find((text) => text && text !== "about:blank" && !/^[a-z]+:\/\//i.test(text));
   if (humanStatus) patch.status_text = humanStatus.slice(0, 240);
+  // Short human summary of the latest step, reused by loop detection, memory
+  // and the pause/ask path below.
+  const latestText = (humanStatus ?? String(latest?.nextGoal ?? "").trim()).slice(0, 240);
+
+
 
 
   // --- loop detection ------------------------------------------------------

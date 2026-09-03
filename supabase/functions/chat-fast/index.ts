@@ -168,26 +168,21 @@ function guestAllowance(bucket: string): { ok: boolean; retryAfterSeconds: numbe
 }
 
 import { AGENT_MODEL, callAgentFallback, hasAgentProvider } from "../_shared/agentFallback.ts";
+import { callModel, hasModelProvider, MODELS } from "../_shared/abliteration.ts";
+import { createClient } from "npm:@supabase/supabase-js@2";
 
-const ENDPOINTS = [
-  "https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions",
-  "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",
-];
-
-function apiKey(): string | null {
-  const names = [
-    "DASHSCOPE_API_KEY",
-    "ALIBABA_API_KEY",
-    "QWEN_API_KEY",
-    "ALIBABA_DASHSCOPE_API_KEY",
-    "DASHSCOPE_KEY",
-  ];
-  for (const n of names) {
-    const v = Deno.env.get(n);
-    if (v) return v;
+/** Service-role client used only to read the rotatable model key pool. */
+function admin() {
+  const url = dataUrl();
+  const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+  if (!url || !key) return null;
+  try {
+    return createClient(url, key, { auth: { persistSession: false } }) as any;
+  } catch {
+    return null;
   }
-  return null;
 }
+
 
 type Msg = { role: string; content: unknown };
 
@@ -235,8 +230,7 @@ Deno.serve(async (req) => {
 
 
 
-  const key = apiKey();
-  if (!key && !hasAgentProvider()) {
+  if (!hasModelProvider() && !hasAgentProvider()) {
     // No fast-lane credentials: tell the client to use the full chat path.
     return new Response(JSON.stringify({ escalate: true, reason: "fast_lane_unconfigured" }), {
       status: 503,
@@ -294,7 +288,7 @@ Deno.serve(async (req) => {
   const thinking = body.thinking === true;
 
   const payload = {
-    model: typeof body.model === "string" && body.model ? body.model : "qwen-flash",
+    model: MODELS.fast,
     stream: true,
     stream_options: { include_usage: true },
     enable_thinking: thinking,
@@ -307,27 +301,10 @@ Deno.serve(async (req) => {
   };
 
 
-  let upstream: Response | null = null;
-  let lastErr = "";
-  for (const url of key ? ENDPOINTS : []) {
-    try {
-      const r = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
-        body: JSON.stringify(payload),
-      });
-      if (r.ok && r.body) {
-        upstream = r;
-        break;
-      }
-      lastErr = `${r.status} ${(await r.text().catch(() => "")).slice(0, 300)}`;
-    } catch (e) {
-      lastErr = String(e);
-    }
-  }
+  const result = await callModel(admin(), [MODELS.fast], payload);
+  const upstream = result?.response ?? null;
 
   if (!upstream || !upstream.body) {
-    if (lastErr) console.error("chat-fast upstream failed:", lastErr);
     const fallback = await callAgentFallback(payload);
     if (fallback?.body) {
       return new Response(fallback.body, {
@@ -354,7 +331,7 @@ Deno.serve(async (req) => {
       "Content-Type": "text/event-stream; charset=utf-8",
       "Cache-Control": "no-cache, no-transform",
       Connection: "keep-alive",
-      "x-model-used": payload.model,
+      "x-model-used": result?.model ?? MODELS.fast,
     },
   });
 });
