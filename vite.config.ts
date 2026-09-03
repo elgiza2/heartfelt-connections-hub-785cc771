@@ -591,6 +591,19 @@ function chatProxyDevPlugin(): Plugin {
   return {
     name: "chat-proxy-dev",
     configureServer(server: ViteDevServer) {
+      // `.env` is not loaded into process.env by Vite, so pick up the
+      // server-only provider key here for preview parity with production.
+      if (!process.env.ABLITERATION_API_KEY) {
+        try {
+          const match = fs
+            .readFileSync(path.resolve(__dirname, ".env"), "utf8")
+            .match(/^ABLITERATION_API_KEY=(.*)$/m);
+          if (match) process.env.ABLITERATION_API_KEY = match[1].trim();
+        } catch {
+          /* no .env in this environment */
+        }
+      }
+
       server.middlewares.use("/api/chat", (req, res) => {
         if (req.method === "OPTIONS") {
           res.statusCode = 204;
