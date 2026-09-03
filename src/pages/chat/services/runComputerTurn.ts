@@ -33,6 +33,7 @@ export async function runComputerTurn({
   text,
   userMsg,
   localTurnId,
+  attachments,
   setMessages,
   setInput,
   setAttachedFiles,
