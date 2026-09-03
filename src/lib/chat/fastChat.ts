@@ -56,6 +56,7 @@ export async function tryFastChat({
   onReasoning,
   force,
   thinking,
+  maxTokens,
 }: {
   messages: FastMsg[];
   authToken: string;
