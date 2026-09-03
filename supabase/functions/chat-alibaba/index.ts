@@ -25,7 +25,7 @@ const headers = {
 // Only the international Model Studio endpoint accepts the workspace key stored
 // in Supabase (`alibaba_keys`). The Beijing endpoint rejects it with 401, so it
 // is intentionally not tried. No other AI provider is used by this function.
-import { callGateway, GATEWAY_MODEL } from "../_shared/gatewayFallback.ts";
+import { AGENT_MODEL, callAgentFallback } from "../_shared/agentFallback.ts";
 
 const ENDPOINTS = [
   "https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions",
@@ -187,10 +187,11 @@ async function callAlibaba(
       }
     }
   }
-  // No Model Studio key worked (or none is configured): keep the product alive
-  // through the Lovable AI Gateway, which needs no manual setup.
-  const fallback = await callGateway(payload);
-  if (fallback) return { response: fallback, model: GATEWAY_MODEL };
+  // No Model Studio key worked (or none is configured): run the turn on our own
+  // cloud agents (Browser Use Cloud, then Hyperbrowser) — they bring their own
+  // LLMs, so no third-party chat gateway is involved.
+  const fallback = await callAgentFallback(payload);
+  if (fallback) return { response: fallback, model: AGENT_MODEL };
   return null;
 }
 

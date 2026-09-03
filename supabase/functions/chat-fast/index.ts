@@ -167,7 +167,7 @@ function guestAllowance(bucket: string): { ok: boolean; retryAfterSeconds: numbe
   return { ok: true, retryAfterSeconds: 0 };
 }
 
-import { callGateway, GATEWAY_MODEL, hasGateway } from "../_shared/gatewayFallback.ts";
+import { AGENT_MODEL, callAgentFallback, hasAgentProvider } from "../_shared/agentFallback.ts";
 
 const ENDPOINTS = [
   "https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions",
@@ -236,7 +236,7 @@ Deno.serve(async (req) => {
 
 
   const key = apiKey();
-  if (!key && !hasGateway()) {
+  if (!key && !hasAgentProvider()) {
     // No fast-lane credentials: tell the client to use the full chat path.
     return new Response(JSON.stringify({ escalate: true, reason: "fast_lane_unconfigured" }), {
       status: 503,
@@ -328,7 +328,7 @@ Deno.serve(async (req) => {
 
   if (!upstream || !upstream.body) {
     if (lastErr) console.error("chat-fast upstream failed:", lastErr);
-    const fallback = await callGateway(payload);
+    const fallback = await callAgentFallback(payload);
     if (fallback?.body) {
       return new Response(fallback.body, {
         status: 200,
@@ -337,7 +337,7 @@ Deno.serve(async (req) => {
           "Content-Type": "text/event-stream; charset=utf-8",
           "Cache-Control": "no-cache, no-transform",
           Connection: "keep-alive",
-          "x-model-used": GATEWAY_MODEL,
+          "x-model-used": AGENT_MODEL,
         },
       });
     }
