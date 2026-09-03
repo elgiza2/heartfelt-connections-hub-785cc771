@@ -27,13 +27,14 @@ function taskLabel(task: ParallelAgentTask, ar: boolean) {
 }
 
 function iconFor(task: ParallelAgentTask) {
-  const meta = resolveToolActivity(task.name, task.appSlug);
-  if (meta.slug) {
-    return (
-      <img loading="lazy" decoding="async" src={brandIconUrl(meta.slug)} alt="" className="h-3.5 w-3.5 opacity-80 dark:invert" />
-    );
-  }
-  return <MegsyStar size={14} static className="text-[var(--megsy-blue)]" />;
+  return (
+    <ToolIcon
+      name={task.name}
+      appSlug={task.appSlug}
+      size={14}
+      className="text-muted-foreground"
+    />
+  );
 }
 
 const ParallelAgentsPanel = ({ tasks, active = true }: Props) => {
