@@ -519,7 +519,24 @@ export async function streamChat({
         signal?.removeEventListener("abort", onOuterAbort);
       }
     }
+    // Second deployment path: when the Supabase edge function is unreachable or
+    // failing, the same turn is served by this app's own serverless runtime
+    // (`/api/chat`), which streams the identical OpenAI-compatible SSE.
+    if (!resp || resp.status >= 500 || resp.status === 404) {
+      try {
+        const proxied = await fetch("/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ...JSON.parse(requestBody), lane: "full" }),
+          signal,
+        });
+        if (proxied.ok && proxied.body) resp = proxied;
+      } catch {
+        /* keep the original response/error */
+      }
+    }
     if (!resp) throw new Error("NETWORK_UNAVAILABLE");
+
 
 
     if (resp.status === 429) {
