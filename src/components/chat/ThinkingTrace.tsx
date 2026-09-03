@@ -1,13 +1,6 @@
 import { memo, useEffect, useMemo, useRef, useState } from "react";
-import {
-  ChevronDown,
-  FileText,
-  Globe,
-  Image as ImageIcon,
-  Plug,
-  Search,
-  Terminal,
-} from "lucide-react";
+import { ChevronDown } from "lucide-react";
+import ToolIcon from "./primitives/ToolIcon";
 import MegsyStar from "@/components/branding/MegsyStar";
 import { BrandLogo } from "@/components/brand/BrandLogo";
 import { t as uiT, useUserLang } from "@/lib/authI18n";
@@ -36,16 +29,6 @@ export interface ThinkingTraceProps {
 
 const RTL_LANGS = new Set(["ar", "ar-eg", "fa", "he"]);
 
-/** Existing icon set, mapped onto the real tool that is running. */
-const TOOL_ICONS: Record<string, typeof Globe> = {
-  browser: Globe,
-  code: Terminal,
-  files: FileText,
-  mcp: Plug,
-  integration: Plug,
-  search: Search,
-  image: ImageIcon,
-};
 
 /**
  * The single "AI thinking" surface used across chat, deep research, slides,
@@ -134,10 +117,10 @@ const ThinkingTrace = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active, status, label, reasoningLines, historyRef.current.length]);
 
-  const ToolIcon = tool ? TOOL_ICONS[tool] : undefined;
-
   // Nothing to show at all.
   if (!hasBody && !active) return null;
+
+  const pulse = running ? "motion-safe:animate-pulse" : "";
 
   return (
     <div className={`mb-3 ${className}`} dir={rtl ? "rtl" : undefined}>
@@ -148,18 +131,14 @@ const ThinkingTrace = ({
         className="flex w-full items-center gap-2 py-0.5 text-start"
       >
         {active ? (
-          ToolIcon ? (
+          tool ? (
             <ToolIcon
-              className={`h-3.5 w-3.5 shrink-0 text-[var(--megsy-blue)] ${
-                running ? "motion-safe:animate-pulse" : ""
-              }`}
+              name={tool}
+              size={14}
+              className={`text-[var(--megsy-blue)] ${pulse}`}
             />
           ) : (
-            <MegsyStar
-              className={`h-3.5 w-3.5 shrink-0 text-[var(--megsy-blue)] ${
-                running ? "motion-safe:animate-pulse" : ""
-              }`}
-            />
+            <MegsyStar className={`h-3.5 w-3.5 shrink-0 text-[var(--megsy-blue)] ${pulse}`} />
           )
         ) : (
           <BrandLogo className="h-3.5 w-3.5 shrink-0" />
