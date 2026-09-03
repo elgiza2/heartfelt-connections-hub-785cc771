@@ -70,6 +70,8 @@ export async function tryFastChat({
   force?: boolean;
   /** The user's deep-thinking toggle for this turn. */
   thinking?: boolean;
+  /** Output budget for this turn (trivial turns use a small one for speed). */
+  maxTokens?: number;
 }): Promise<FastChatOutcome> {
   let resp: Response;
   try {
