@@ -741,6 +741,8 @@ export default defineConfig({
     webSearchDevPlugin(),
     readUrlDevPlugin(),
     deepResearchDevPlugin(),
+    chatProxyDevPlugin(),
+
 
 
     transcribeDevPlugin(),
