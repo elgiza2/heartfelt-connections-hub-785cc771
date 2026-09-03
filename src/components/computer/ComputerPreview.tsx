@@ -226,46 +226,36 @@ export function ComputerPreview({
         </div>
       )}
 
-      {/* computer card — clean frame, single open/close toggle, nothing else */}
-      {hasScreen && (
-        <div className="overflow-hidden rounded-2xl border border-border/40 bg-card/30">
-          <button
-            type="button"
-            onClick={() => setOpen((v) => !v)}
-            aria-expanded={open}
-            aria-label={open ? "إغلاق شاشة الكمبيوتر" : "فتح شاشة الكمبيوتر"}
-            className="flex w-full items-center justify-between px-3 py-2 text-muted-foreground transition-colors hover:text-foreground"
-          >
-            <Monitor className="h-4 w-4" />
-            <ChevronDown
-              className={`h-4 w-4 transition-transform ${open ? "rotate-180" : ""}`}
-            />
-          </button>
-
-          {open && (
-            <div className="relative aspect-[16/10] w-full bg-black/80">
-              {url ? (
-                <iframe
-                  key={url}
-                  src={url}
-                  title="Megsy Computer"
-                  className="absolute inset-0 h-full w-full border-0"
-                  allow="clipboard-read; clipboard-write"
-                  sandbox="allow-scripts allow-same-origin allow-forms"
-                />
-              ) : lastShot ? (
-                <img
-                  src={lastShot}
-                  alt=""
-                  loading="lazy"
-                  className="absolute inset-0 h-full w-full object-cover object-top"
-                />
-              ) : null}
-              {url && <div className="absolute inset-0" aria-hidden />}
-            </div>
-          )}
+      {/* computer card — a bare rounded screen: no header, no icons, no buttons.
+          It appears as soon as the computer is in use, even before the live
+          view or the first screenshot exists (soft shimmer placeholder). */}
+      {(hasScreen || active) && (
+        <div className="overflow-hidden rounded-2xl border border-border/40 bg-black/80">
+          <div className="relative aspect-[16/10] w-full">
+            {url ? (
+              <iframe
+                key={url}
+                src={url}
+                title="Megsy Computer"
+                className="absolute inset-0 h-full w-full border-0"
+                allow="clipboard-read; clipboard-write"
+                sandbox="allow-scripts allow-same-origin allow-forms"
+              />
+            ) : lastShot ? (
+              <img
+                src={lastShot}
+                alt=""
+                loading="lazy"
+                className="absolute inset-0 h-full w-full object-cover object-top"
+              />
+            ) : (
+              <div className="absolute inset-0 animate-pulse bg-gradient-to-br from-white/[0.06] via-white/[0.02] to-transparent" />
+            )}
+            {url && <div className="absolute inset-0" aria-hidden />}
+          </div>
         </div>
       )}
+
 
       {/* final answer, plain text */}
       {finished && finalText && (
