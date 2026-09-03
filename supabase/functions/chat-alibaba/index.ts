@@ -470,10 +470,38 @@ Deno.serve(async (req) => {
         }
 
         const upstreamReader = result.response.body.getReader();
+        // The upstream SSE is forwarded byte-for-byte; we only sniff the text
+        // deltas so the turn can be written to global memory afterwards.
+        const sniff = new TextDecoder();
+        let answerText = "";
         while (true) {
           const { done, value } = await upstreamReader.read();
           if (done) break;
           if (alive) controller.enqueue(value);
+          if (answerText.length < 6000 && value) {
+            for (const line of sniff.decode(value, { stream: true }).split("\n")) {
+              const payload = line.startsWith("data:") ? line.slice(5).trim() : "";
+              if (!payload || payload === "[DONE]") continue;
+              try {
+                const delta = JSON.parse(payload)?.choices?.[0]?.delta?.content;
+                if (typeof delta === "string") answerText += delta;
+              } catch { /* partial frame — ignore */ }
+            }
+          }
+        }
+
+        // Write durable facts back to global memory, detached from the response.
+        try {
+          const mem = await import("./memory.ts");
+          const identity = await mem.memoryIdentity(
+            userId,
+            req.headers.get("x-anon-fingerprint"),
+          );
+          if (identity && answerText.trim()) {
+            void mem.remember(admin, call, identity, question, answerText);
+          }
+        } catch (error) {
+          console.error("chat-alibaba memory write skipped", error);
         }
       } catch (error) {
         console.error("chat-alibaba stream failed", error);
