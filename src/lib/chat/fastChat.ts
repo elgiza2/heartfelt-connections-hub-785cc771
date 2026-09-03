@@ -76,6 +76,20 @@ export async function tryFastChat({
   maxTokens?: number;
 }): Promise<FastChatOutcome> {
   let resp: Response;
+  const proxyBody = JSON.stringify({
+    messages,
+    lane: "fast",
+    thinking: thinking === true,
+    maxTokens: force ? 8192 : maxTokens,
+  });
+  /** Fallback runtime: this app's own serverless chat endpoint. */
+  const viaProxy = () =>
+    fetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: proxyBody,
+      signal,
+    });
   try {
     resp = await fetch(FAST_URL, {
       method: "POST",
@@ -92,10 +106,23 @@ export async function tryFastChat({
       }),
       signal,
     });
+    if (resp.status >= 500 || resp.status === 404) {
+      try {
+        await resp.body?.cancel();
+      } catch {
+        /* ignore */
+      }
+      resp = await viaProxy();
+    }
   } catch (e) {
     if (signal?.aborted) throw e;
-    return "escalate";
+    try {
+      resp = await viaProxy();
+    } catch {
+      return "escalate";
+    }
   }
+
 
 
   const contentType = resp.headers.get("content-type") || "";

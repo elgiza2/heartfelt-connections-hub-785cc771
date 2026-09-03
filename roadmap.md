@@ -15,3 +15,9 @@
 
 ## Blocked
 - [ ] Redeploy edge functions (Supabase deploy API returns internal error for every function, including untouched ones) — retry, then re-test chat/computer end to end.
+
+## Second deployment path (Supabase deploy blocked)
+- `src/lib/chat/proxyCore.ts` + `api/chat.ts` + Vite dev plugin serve chat from our own serverless runtime via abliteration.ai.
+- `streamChat.ts` and `fastChat.ts` fall back to `/api/chat` on 5xx/404/network failure from the Supabase edge functions.
+- Production needs `ABLITERATION_API_KEY` set in the hosting env (already in local `.env`).
+- Still pending: redeploy Supabase edge functions when the platform recovers; computer (Browser Use) path still runs through `/api/computer-agent`.

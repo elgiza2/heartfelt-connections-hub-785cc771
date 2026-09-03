@@ -2,7 +2,9 @@ import { defineConfig } from "vite";
 import type { Plugin, ViteDevServer } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
+import fs from "fs";
 import { createHmac } from "crypto";
+
 import { visualizer } from "rollup-plugin-visualizer";
 import { compression, defineAlgorithm } from "vite-plugin-compression2";
 import { constants as zlibConstants } from "zlib";
@@ -584,6 +586,78 @@ function deepResearchDevPlugin(): Plugin {
   };
 }
 
+/** Dev-server equivalent of api/chat.ts (chat fallback when Supabase is down). */
+function chatProxyDevPlugin(): Plugin {
+  return {
+    name: "chat-proxy-dev",
+    configureServer(server: ViteDevServer) {
+      // `.env` is not loaded into process.env by Vite, so pick up the
+      // server-only provider key here for preview parity with production.
+      if (!process.env.ABLITERATION_API_KEY) {
+        try {
+          const match = fs
+            .readFileSync(path.resolve(__dirname, ".env"), "utf8")
+            .match(/^ABLITERATION_API_KEY=(.*)$/m);
+          if (match) process.env.ABLITERATION_API_KEY = match[1].trim();
+        } catch {
+          /* no .env in this environment */
+        }
+      }
+
+      server.middlewares.use("/api/chat", (req, res) => {
+        if (req.method === "OPTIONS") {
+          res.statusCode = 204;
+          res.end();
+          return;
+        }
+        if (req.method !== "POST") {
+          res.statusCode = 405;
+          res.setHeader("Content-Type", "application/json");
+          res.end(JSON.stringify({ error: "Method not allowed" }));
+          return;
+        }
+        const chunks: Buffer[] = [];
+        req.on("data", (c) => chunks.push(Buffer.from(c)));
+        req.on("end", async () => {
+          let payload: Record<string, any> | null = null;
+          try {
+            payload = chunks.length ? JSON.parse(Buffer.concat(chunks).toString("utf8")) : null;
+          } catch {
+            payload = null;
+          }
+          try {
+            const { streamChatProxy } = await import("./src/lib/chat/proxyCore");
+            const response = await streamChatProxy(payload ?? {}, {
+              "Access-Control-Allow-Origin": "*",
+            });
+            res.statusCode = response.status;
+            response.headers.forEach((value, key) => res.setHeader(key, value));
+            if (!response.body) {
+              res.end();
+              return;
+            }
+            const reader = response.body.getReader();
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              res.write(Buffer.from(value));
+              (res as unknown as { flush?: () => void }).flush?.();
+            }
+            res.end();
+          } catch (error) {
+            res.statusCode = 500;
+            res.setHeader("Content-Type", "application/json");
+            res.end(
+              JSON.stringify({ error: error instanceof Error ? error.message : "chat_failed" }),
+            );
+          }
+        });
+      });
+    },
+  };
+}
+
+
 /** Dev-server equivalent of api/transcribe.ts (composer mic dictation). */
 function transcribeDevPlugin(): Plugin {
   return {
@@ -682,6 +756,8 @@ export default defineConfig({
     webSearchDevPlugin(),
     readUrlDevPlugin(),
     deepResearchDevPlugin(),
+    chatProxyDevPlugin(),
+
 
 
     transcribeDevPlugin(),
