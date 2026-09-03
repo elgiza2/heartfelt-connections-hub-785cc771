@@ -355,7 +355,8 @@ export async function streamChat({
         onModel,
         onUsage,
         onReasoning,
-        thinking: deepThinkingEnabled(),
+        thinking: deepThinkingEnabled() && !isTrivialTurn(messages),
+        ...(isTrivialTurn(messages) ? { maxTokens: 700 } : {}),
       });
 
       if (outcome === "answered") {
