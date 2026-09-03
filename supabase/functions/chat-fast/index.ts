@@ -167,6 +167,8 @@ function guestAllowance(bucket: string): { ok: boolean; retryAfterSeconds: numbe
   return { ok: true, retryAfterSeconds: 0 };
 }
 
+import { callGateway, GATEWAY_MODEL, hasGateway } from "../_shared/gatewayFallback.ts";
+
 const ENDPOINTS = [
   "https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions",
   "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",
@@ -234,7 +236,7 @@ Deno.serve(async (req) => {
 
 
   const key = apiKey();
-  if (!key) {
+  if (!key && !hasGateway()) {
     // No fast-lane credentials: tell the client to use the full chat path.
     return new Response(JSON.stringify({ escalate: true, reason: "fast_lane_unconfigured" }), {
       status: 503,
@@ -307,7 +309,7 @@ Deno.serve(async (req) => {
 
   let upstream: Response | null = null;
   let lastErr = "";
-  for (const url of ENDPOINTS) {
+  for (const url of key ? ENDPOINTS : []) {
     try {
       const r = await fetch(url, {
         method: "POST",
@@ -325,7 +327,20 @@ Deno.serve(async (req) => {
   }
 
   if (!upstream || !upstream.body) {
-    console.error("chat-fast upstream failed:", lastErr);
+    if (lastErr) console.error("chat-fast upstream failed:", lastErr);
+    const fallback = await callGateway(payload);
+    if (fallback?.body) {
+      return new Response(fallback.body, {
+        status: 200,
+        headers: {
+          ...fastCorsHeaders,
+          "Content-Type": "text/event-stream; charset=utf-8",
+          "Cache-Control": "no-cache, no-transform",
+          Connection: "keep-alive",
+          "x-model-used": GATEWAY_MODEL,
+        },
+      });
+    }
     return new Response(JSON.stringify({ escalate: true, reason: "upstream_unavailable" }), {
       status: 200,
       headers: { ...fastCorsHeaders, "Content-Type": "application/json" },
