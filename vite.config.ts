@@ -584,6 +584,65 @@ function deepResearchDevPlugin(): Plugin {
   };
 }
 
+/** Dev-server equivalent of api/chat.ts (chat fallback when Supabase is down). */
+function chatProxyDevPlugin(): Plugin {
+  return {
+    name: "chat-proxy-dev",
+    configureServer(server: ViteDevServer) {
+      server.middlewares.use("/api/chat", (req, res) => {
+        if (req.method === "OPTIONS") {
+          res.statusCode = 204;
+          res.end();
+          return;
+        }
+        if (req.method !== "POST") {
+          res.statusCode = 405;
+          res.setHeader("Content-Type", "application/json");
+          res.end(JSON.stringify({ error: "Method not allowed" }));
+          return;
+        }
+        const chunks: Buffer[] = [];
+        req.on("data", (c) => chunks.push(Buffer.from(c)));
+        req.on("end", async () => {
+          let payload: Record<string, any> | null = null;
+          try {
+            payload = chunks.length ? JSON.parse(Buffer.concat(chunks).toString("utf8")) : null;
+          } catch {
+            payload = null;
+          }
+          try {
+            const { streamChatProxy } = await import("./src/lib/chat/proxyCore");
+            const response = await streamChatProxy(payload ?? {}, {
+              "Access-Control-Allow-Origin": "*",
+            });
+            res.statusCode = response.status;
+            response.headers.forEach((value, key) => res.setHeader(key, value));
+            if (!response.body) {
+              res.end();
+              return;
+            }
+            const reader = response.body.getReader();
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              res.write(Buffer.from(value));
+              (res as unknown as { flush?: () => void }).flush?.();
+            }
+            res.end();
+          } catch (error) {
+            res.statusCode = 500;
+            res.setHeader("Content-Type", "application/json");
+            res.end(
+              JSON.stringify({ error: error instanceof Error ? error.message : "chat_failed" }),
+            );
+          }
+        });
+      });
+    },
+  };
+}
+
+
 /** Dev-server equivalent of api/transcribe.ts (composer mic dictation). */
 function transcribeDevPlugin(): Plugin {
   return {
