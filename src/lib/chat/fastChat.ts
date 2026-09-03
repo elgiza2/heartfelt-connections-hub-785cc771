@@ -84,7 +84,7 @@ export async function tryFastChat({
       body: JSON.stringify({
         messages,
         thinking: thinking === true,
-        ...(force ? { force: true, maxTokens: 8192 } : {}),
+        ...(force ? { force: true, maxTokens: 8192 } : maxTokens ? { maxTokens } : {}),
       }),
       signal,
     });
