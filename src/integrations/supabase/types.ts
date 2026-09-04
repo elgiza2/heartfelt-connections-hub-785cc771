@@ -5030,14 +5030,20 @@ export type Database = {
       mcp_connections: {
         Row: {
           auth_headers: Json
+          auth_mode: string | null
+          capabilities: Json
           created_at: string
           enabled: boolean
           id: string
           last_error: string | null
+          last_probed_at: string | null
           name: string
+          oauth: Json
+          protocol_version: string | null
           state: string
           tool_names: string[]
           tool_schemas: Json
+          tools: Json
           transport: string
           updated_at: string
           url: string
@@ -5045,14 +5051,20 @@ export type Database = {
         }
         Insert: {
           auth_headers?: Json
+          auth_mode?: string | null
+          capabilities?: Json
           created_at?: string
           enabled?: boolean
           id?: string
           last_error?: string | null
+          last_probed_at?: string | null
           name: string
+          oauth?: Json
+          protocol_version?: string | null
           state?: string
           tool_names?: string[]
           tool_schemas?: Json
+          tools?: Json
           transport?: string
           updated_at?: string
           url: string
@@ -5060,14 +5072,20 @@ export type Database = {
         }
         Update: {
           auth_headers?: Json
+          auth_mode?: string | null
+          capabilities?: Json
           created_at?: string
           enabled?: boolean
           id?: string
           last_error?: string | null
+          last_probed_at?: string | null
           name?: string
+          oauth?: Json
+          protocol_version?: string | null
           state?: string
           tool_names?: string[]
           tool_schemas?: Json
+          tools?: Json
           transport?: string
           updated_at?: string
           url?: string
