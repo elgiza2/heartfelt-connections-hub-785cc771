@@ -20,7 +20,10 @@ const cors = {
   "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
 };
 
+const BOT_TOKEN = Deno.env.get("TELEGRAM_BOT_TOKEN") ?? "";
+
 function gatewayHeaders(): Record<string, string> {
+  if (BOT_TOKEN) return {};
   const lovableKey = Deno.env.get("LOVABLE_API_KEY");
   const connKey = Deno.env.get("TELEGRAM_API_KEY");
   if (!lovableKey || !connKey) throw new Error("telegram connector is not configured");
@@ -28,7 +31,9 @@ function gatewayHeaders(): Record<string, string> {
 }
 
 async function freshUrl(fileId: string): Promise<string> {
-  const res = await fetch(`${GATEWAY}/getFile`, {
+  const res = await fetch(
+    BOT_TOKEN ? `https://api.telegram.org/bot${BOT_TOKEN}/getFile` : `${GATEWAY}/getFile`,
+    {
     method: "POST",
     headers: { ...gatewayHeaders(), "Content-Type": "application/json" },
     body: JSON.stringify({ file_id: fileId }),
