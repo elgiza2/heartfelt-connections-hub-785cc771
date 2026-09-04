@@ -36,16 +36,14 @@ export function useUserMusic(params: {
 
   const playUserTrack = useCallback(
     async (track: UserTrack) => {
-      const { data, error } = await supabase.storage
-        .from("user-music")
-        .createSignedUrl(track.storage_path, 3600);
-      if (error || !data?.signedUrl) {
+      const src = /^https?:\/\//i.test(track.storage_path) ? track.storage_path : "";
+      if (!src) {
         toast.error("Failed to load track");
         return;
       }
       if (!studyAudioRef.current) studyAudioRef.current = new Audio();
       studyAudioRef.current.loop = true;
-      studyAudioRef.current.src = data.signedUrl;
+      studyAudioRef.current.src = src;
       studyAudioRef.current.volume = 0.5;
       studyAudioRef.current
         .play()
