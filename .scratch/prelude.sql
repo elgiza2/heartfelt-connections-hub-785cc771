@@ -1,0 +1,12 @@
+create extension if not exists vector;
+create extension if not exists pgcrypto;
+create extension if not exists pg_net;
+create extension if not exists pg_cron;
+do $$ begin create type public.app_role as enum ('admin','moderator','user'); exception when duplicate_object then null; end $$;
+do $$ begin create type public.memory_scope as enum ('account','conversation','project','file','preference'); exception when duplicate_object then null; end $$;
+do $$ begin create type public.workspace_role as enum ('owner','admin','member','editor','viewer','billing_manager'); exception when duplicate_object then null; end $$;
+do $$ begin create type public.workspace_invite_status as enum ('pending','accepted','revoked','expired'); exception when duplicate_object then null; end $$;
+do $$ begin create type public.workspace_task_status as enum ('todo','doing','done'); exception when duplicate_object then null; end $$;
+do $$ begin create type public.workspace_task_priority as enum ('low','medium','high'); exception when duplicate_object then null; end $$;
+do $$ begin create type public.bundle_order_status as enum ('pending','approved','rejected'); exception when duplicate_object then null; end $$;
+create or replace function public.has_role(_user_id uuid, _role app_role) returns boolean language sql stable security definer set search_path = public as $$ select exists (select 1 from public.user_roles where user_id = _user_id and role = _role) $$;
