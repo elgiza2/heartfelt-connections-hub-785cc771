@@ -3,6 +3,7 @@
  *  credentials — it only sends its own Supabase access token.
  */
 import { supabase } from "@/integrations/supabase/client";
+import { callServerEndpoint } from "@/lib/api/callServerEndpoint";
 
 export type McpToolInfo = {
   name: string;
@@ -60,15 +61,11 @@ export async function mcpGateway(
   const token = data.session?.access_token;
   if (!token) throw new Error("Sign in to manage tool servers");
 
-  const res = await fetch("/api/mcp", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-    body: JSON.stringify({
-      action,
-      token,
-      origin: typeof window !== "undefined" ? window.location.origin : undefined,
-      ...payload,
-    }),
+  const res = await callServerEndpoint("mcp", {
+    action,
+    token,
+    origin: typeof window !== "undefined" ? window.location.origin : undefined,
+    ...payload,
   });
   const body = (await res.json().catch(() => null)) as McpGatewayResponse | null;
   if (!body) throw new Error("Tool server request failed");

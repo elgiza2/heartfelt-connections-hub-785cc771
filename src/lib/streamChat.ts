@@ -472,26 +472,29 @@ export async function streamChat({
         zone: (typeof window !== "undefined" && (window as any).__MEGSY_ZONE__) || "megsy",
       });
     let resp: Response | null = null;
-    // Primary runtime: this app's own serverless chat endpoint streams the
-    // model's reasoning deltas, so the thinking panel always has content.
-    try {
-      const primary = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...JSON.parse(requestBody), lane: "full" }),
-        signal,
-      });
-      if (
-        primary.ok &&
-        primary.body &&
-        (primary.headers.get("content-type") || "").includes("text/event-stream")
-      ) {
-        resp = primary;
-      } else {
-        try { await primary.body?.cancel(); } catch { /* ignore */ }
+    // Primary runtime (dev only): this app's own serverless chat endpoint streams
+    // the model's reasoning deltas. In production that path does not exist, so
+    // the request goes straight to the deployed edge function below.
+    if (import.meta.env.DEV) {
+      try {
+        const primary = await fetch("/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ...JSON.parse(requestBody), lane: "full" }),
+          signal,
+        });
+        if (
+          primary.ok &&
+          primary.body &&
+          (primary.headers.get("content-type") || "").includes("text/event-stream")
+        ) {
+          resp = primary;
+        } else {
+          try { await primary.body?.cancel(); } catch { /* ignore */ }
+        }
+      } catch {
+        /* fall through to the Supabase edge function */
       }
-    } catch {
-      /* fall through to the Supabase edge function */
     }
     // Headers watchdog: if the full chat function does not even answer with
     // headers in time, stop waiting and let the fast lane rescue the turn.
@@ -540,10 +543,10 @@ export async function streamChat({
         signal?.removeEventListener("abort", onOuterAbort);
       }
     }
-    // Second deployment path: when the Supabase edge function is unreachable or
-    // failing, the same turn is served by this app's own serverless runtime
-    // (`/api/chat`), which streams the identical OpenAI-compatible SSE.
-    if (!resp || resp.status >= 500 || resp.status === 404) {
+    // Second deployment path (dev only): when the Supabase edge function is
+    // unreachable or failing, the same turn is served by this app's local
+    // serverless runtime (`/api/chat`), which streams the identical SSE.
+    if (import.meta.env.DEV && (!resp || resp.status >= 500 || resp.status === 404)) {
       try {
         const proxied = await fetch("/api/chat", {
           method: "POST",
