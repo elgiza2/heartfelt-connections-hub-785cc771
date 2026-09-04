@@ -543,10 +543,10 @@ export async function streamChat({
         signal?.removeEventListener("abort", onOuterAbort);
       }
     }
-    // Second deployment path: when the Supabase edge function is unreachable or
-    // failing, the same turn is served by this app's own serverless runtime
-    // (`/api/chat`), which streams the identical OpenAI-compatible SSE.
-    if (!resp || resp.status >= 500 || resp.status === 404) {
+    // Second deployment path (dev only): when the Supabase edge function is
+    // unreachable or failing, the same turn is served by this app's local
+    // serverless runtime (`/api/chat`), which streams the identical SSE.
+    if (import.meta.env.DEV && (!resp || resp.status >= 500 || resp.status === 404)) {
       try {
         const proxied = await fetch("/api/chat", {
           method: "POST",
