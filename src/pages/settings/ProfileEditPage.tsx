@@ -143,13 +143,12 @@ const ProfileEditPage = () => {
     setAvatarBusy(true);
     try {
       const ext = (file.name.split(".").pop() || "png").toLowerCase();
-      const path = `${userId}/avatars/${Date.now()}.${ext}`;
-      const { error: upErr } = await supabase.storage
-        .from("user-images")
-        .upload(path, file, { contentType: file.type, upsert: true });
-      if (upErr) throw upErr;
-      const { data: pub } = supabase.storage.from("user-images").getPublicUrl(path);
-      const url = pub?.publicUrl;
+      const { uploadToTelegram } = await import("@/lib/telegramStorage");
+      const uploaded = await uploadToTelegram(file, {
+        filename: `avatar-${Date.now()}.${ext}`,
+        kind: "photo",
+      });
+      const url = uploaded.url;
       if (!url) throw new Error("Could not resolve image URL");
 
       const [profRes, authRes] = await Promise.all([
