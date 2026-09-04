@@ -1,7 +1,1 @@
-project_id = "ltgampdtawuefwwayncx"
-
-[functions.tg-file]
-verify_jwt = false
-
-[functions.storage-purge]
-verify_jwt = false
+project_id = "qdnqxjzjecaieuavagvq"
