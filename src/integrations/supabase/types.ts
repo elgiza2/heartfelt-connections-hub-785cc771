@@ -4167,9 +4167,11 @@ export type Database = {
           error: string | null
           id: string
           kind: string
+          origin: string | null
           payload: Json | null
           result: Json | null
           status: string
+          summary: string | null
           user_id: string | null
         }
         Insert: {
@@ -4178,9 +4180,11 @@ export type Database = {
           error?: string | null
           id?: string
           kind: string
+          origin?: string | null
           payload?: Json | null
           result?: Json | null
           status?: string
+          summary?: string | null
           user_id?: string | null
         }
         Update: {
@@ -4189,9 +4193,11 @@ export type Database = {
           error?: string | null
           id?: string
           kind?: string
+          origin?: string | null
           payload?: Json | null
           result?: Json | null
           status?: string
+          summary?: string | null
           user_id?: string | null
         }
         Relationships: []
@@ -5721,6 +5727,7 @@ export type Database = {
           app_referral: boolean
           app_system: boolean
           created_at: string
+          email_enabled: boolean
           email_low_balance: boolean
           email_newsletter: boolean
           email_transactions: boolean
@@ -5736,6 +5743,7 @@ export type Database = {
           app_referral?: boolean
           app_system?: boolean
           created_at?: string
+          email_enabled?: boolean
           email_low_balance?: boolean
           email_newsletter?: boolean
           email_transactions?: boolean
@@ -5751,6 +5759,7 @@ export type Database = {
           app_referral?: boolean
           app_system?: boolean
           created_at?: string
+          email_enabled?: boolean
           email_low_balance?: boolean
           email_newsletter?: boolean
           email_transactions?: boolean
@@ -10625,6 +10634,10 @@ export type Database = {
         }
         Returns: Json
       }
+      consume_video_quota: {
+        Args: { _model: string; _unlimited?: boolean }
+        Returns: Json
+      }
       create_notification: {
         Args: {
           p_message: string
@@ -10664,6 +10677,24 @@ export type Database = {
           p_user_id: string
         }
         Returns: Json
+      }
+      ensure_my_mailbox: {
+        Args: never
+        Returns: {
+          address: string
+          created_at: string
+          display_name: string | null
+          external_enabled: boolean | null
+          id: string
+          updated_at: string
+          user_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "mailboxes"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       get_integration_secret: {
         Args: {
