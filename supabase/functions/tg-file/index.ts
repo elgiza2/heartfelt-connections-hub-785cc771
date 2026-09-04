@@ -34,14 +34,17 @@ async function freshUrl(fileId: string): Promise<string> {
   const res = await fetch(
     BOT_TOKEN ? `https://api.telegram.org/bot${BOT_TOKEN}/getFile` : `${GATEWAY}/getFile`,
     {
-    method: "POST",
-    headers: { ...gatewayHeaders(), "Content-Type": "application/json" },
-    body: JSON.stringify({ file_id: fileId }),
-  });
+      method: "POST",
+      headers: { ...gatewayHeaders(), "Content-Type": "application/json" },
+      body: JSON.stringify({ file_id: fileId }),
+    },
+  );
   const parsed = await res.json().catch(() => null);
   const path = parsed?.result?.file_path;
   if (!path) throw new Error("telegram getFile failed");
-  return `${GATEWAY}/file/${path}`;
+  return BOT_TOKEN
+    ? `https://api.telegram.org/file/bot${BOT_TOKEN}/${path}`
+    : `${GATEWAY}/file/${path}`;
 }
 
 Deno.serve(async (req) => {
