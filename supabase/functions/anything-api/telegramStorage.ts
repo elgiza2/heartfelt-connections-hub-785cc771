@@ -33,7 +33,21 @@ const GATEWAY = "https://connector-gateway.lovable.dev/telegram";
 const MAX_BYTES = 45 * 1024 * 1024; // Telegram bot upload ceiling (50MB) with headroom
 const CACHE_MS = 55 * 60 * 1000;
 
+/** Direct bot-token mode (preferred) or Lovable connector gateway fallback. */
+const BOT_TOKEN = Deno.env.get("TELEGRAM_BOT_TOKEN") ?? "";
+
+function apiUrl(method: string): string {
+  return BOT_TOKEN ? `https://api.telegram.org/bot${BOT_TOKEN}/${method}` : `${GATEWAY}/${method}`;
+}
+
+export function tgFileUrl(path: string): string {
+  return BOT_TOKEN
+    ? `https://api.telegram.org/file/bot${BOT_TOKEN}/${path}`
+    : `${GATEWAY}/file/${path}`;
+}
+
 function gatewayHeaders(): Record<string, string> {
+  if (BOT_TOKEN) return {};
   const lovableKey = Deno.env.get("LOVABLE_API_KEY");
   const connKey = Deno.env.get("TELEGRAM_API_KEY");
   if (!lovableKey) throw new Error("LOVABLE_API_KEY is not configured");
@@ -42,7 +56,7 @@ function gatewayHeaders(): Record<string, string> {
 }
 
 async function tg(method: string, body: unknown): Promise<any> {
-  const res = await fetch(`${GATEWAY}/${method}`, {
+  const res = await fetch(apiUrl(method), {
     method: "POST",
     headers: { ...gatewayHeaders(), "Content-Type": "application/json" },
     body: JSON.stringify(body ?? {}),
@@ -55,7 +69,7 @@ async function tg(method: string, body: unknown): Promise<any> {
 }
 
 async function tgUpload(method: string, form: FormData): Promise<any> {
-  const res = await fetch(`${GATEWAY}/${method}`, {
+  const res = await fetch(apiUrl(method), {
     method: "POST",
     headers: gatewayHeaders(),
     body: form,
@@ -118,7 +132,7 @@ async function freshUrl(fileId: string): Promise<{ url: string; size: number | n
   const file = await tg("getFile", { file_id: fileId });
   const path = file?.file_path;
   if (!path) throw new Error("Telegram did not return a file path");
-  return { url: `${GATEWAY}/file/${path}`, size: file?.file_size ?? null };
+  return { url: tgFileUrl(path), size: file?.file_size ?? null };
 }
 
 function pickKind(mime: string, hint?: string): "photo" | "video" | "document" {
