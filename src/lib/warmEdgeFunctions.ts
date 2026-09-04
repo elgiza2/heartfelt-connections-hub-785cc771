@@ -1,7 +1,7 @@
 /** @doc Fire-and-forget warmup pings to hot edge functions. Called on Chat page
  *  mount to cut cold-start latency on the user's first message. Uses OPTIONS
  *  (CORS preflight) which is ~0 cost server-side but wakes the isolate. */
-const SUPABASE_URL = "https://ltgampdtawuefwwayncx.supabase.co";
+const SUPABASE_URL = "https://qdnqxjzjecaieuavagvq.supabase.co";
 
 const DEFAULT_TARGETS = ["chat-fast", "chat-alibaba", "anything-api"];
 

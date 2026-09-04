@@ -15,7 +15,7 @@ const SITE = "https://megsyai.com";
 /** Animated frame loop of the brand video, served from Supabase Storage with a
  *  long-lived signed URL so it renders in every mail client immediately. */
 const HERO_GIF =
-  "https://ltgampdtawuefwwayncx.supabase.co/storage/v1/object/sign/email-assets/hero.gif?token=eyJraWQiOiJhM2JiNGUxMC1mZWQ4LTQ5YzgtOTYxOS1mYzUwOGM5OWFlZTAiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJlbWFpbC1hc3NldHMvaGVyby5naWYiLCJzY29wZSI6ImRvd25sb2FkIiwiaWF0IjoxNzg3OTgwMDA1LCJleHAiOjIxMDMzNDAwMDV9.h66xE5ll93acc7xeC3e6ix4hoFUgu3KV-H8uDLcgPQY";
+  "https://qdnqxjzjecaieuavagvq.supabase.co/storage/v1/object/sign/email-assets/hero.gif?token=eyJraWQiOiJhM2JiNGUxMC1mZWQ4LTQ5YzgtOTYxOS1mYzUwOGM5OWFlZTAiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJlbWFpbC1hc3NldHMvaGVyby5naWYiLCJzY29wZSI6ImRvd25sb2FkIiwiaWF0IjoxNzg3OTgwMDA1LCJleHAiOjIxMDMzNDAwMDV9.h66xE5ll93acc7xeC3e6ix4hoFUgu3KV-H8uDLcgPQY";
 
 export interface BrandEmailInput {
   title: string;
