@@ -1,1 +1,7 @@
 project_id = "qdnqxjzjecaieuavagvq"
+
+[functions.tg-file]
+verify_jwt = false
+
+[functions.storage-purge]
+verify_jwt = false
