@@ -10489,7 +10489,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      __tmp_migrate: { Args: { p_sql: string }; Returns: string }
       accept_conversation_invite: { Args: { p_token: string }; Returns: Json }
       acquire_media_key: {
         Args: { p_model_id: string; p_provider: string }

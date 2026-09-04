@@ -36,16 +36,14 @@ export function useUserMusic(params: {
 
   const playUserTrack = useCallback(
     async (track: UserTrack) => {
-      const { data, error } = await supabase.storage
-        .from("user-music")
-        .createSignedUrl(track.storage_path, 3600);
-      if (error || !data?.signedUrl) {
+      const src = /^https?:\/\//i.test(track.storage_path) ? track.storage_path : "";
+      if (!src) {
         toast.error("Failed to load track");
         return;
       }
       if (!studyAudioRef.current) studyAudioRef.current = new Audio();
       studyAudioRef.current.loop = true;
-      studyAudioRef.current.src = data.signedUrl;
+      studyAudioRef.current.src = src;
       studyAudioRef.current.volume = 0.5;
       studyAudioRef.current
         .play()
@@ -76,18 +74,18 @@ export function useUserMusic(params: {
       setUploadingMusic(true);
       try {
         const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-        const path = `${user.id}/${Date.now()}_${safeName}`;
-        const { error: upErr } = await supabase.storage
-          .from("user-music")
-          .upload(path, file, { contentType: file.type });
-        if (upErr) throw upErr;
+        const { uploadToTelegram } = await import("@/lib/telegramStorage");
+        const uploaded = await uploadToTelegram(file, {
+          filename: `${Date.now()}_${safeName}`,
+          kind: "document",
+        });
         const displayName = file.name.replace(/\.[^.]+$/, "");
         const { data: row, error: insErr } = await supabase
           .from("user_music_tracks")
           .insert({
             user_id: user.id,
             name: displayName,
-            storage_path: path,
+            storage_path: uploaded.url,
             size_bytes: file.size,
           })
           .select("id, name, storage_path")
@@ -108,7 +106,6 @@ export function useUserMusic(params: {
 
   const deleteUserTrack = useCallback(
     async (track: UserTrack) => {
-      await supabase.storage.from("user-music").remove([track.storage_path]);
       await supabase.from("user_music_tracks").delete().eq("id", track.id);
       setUserTracks((prev) => prev.filter((t) => t.id !== track.id));
       if (studyMusicKind === track.name) {

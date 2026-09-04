@@ -34,14 +34,9 @@ async function uploadAttachedImages(dataUrls: string[]): Promise<string[]> {
     try {
       const mime = match[1];
       const ext = mime.includes("png") ? "png" : mime.includes("webp") ? "webp" : "jpg";
-      const bin = Uint8Array.from(atob(match[2]), (c) => c.charCodeAt(0));
-      const path = `${uid}/chat-uploads/${Date.now()}-${i}.${ext}`;
-      const { data: up, error } = await supabase.storage
-        .from("user-images")
-        .upload(path, bin, { contentType: mime, upsert: false });
-      if (error || !up?.path) throw error ?? new Error("Image upload failed");
-      const { data: pub } = supabase.storage.from("user-images").getPublicUrl(up.path);
-      if (pub?.publicUrl) urls.push(pub.publicUrl);
+      const { uploadDataUrlToTelegram } = await import("@/lib/telegramStorage");
+      const res = await uploadDataUrlToTelegram(d, `chat-${Date.now()}-${i}.${ext}`);
+      if (res.url) urls.push(res.url);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Image upload failed";
       throw new Error(`فشل رفع الصورة المرفقة: ${message}`);

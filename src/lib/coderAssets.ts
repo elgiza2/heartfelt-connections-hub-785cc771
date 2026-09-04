@@ -280,18 +280,10 @@ export async function uploadAttachmentDataUrl(dataUrl: string, name = "upload"):
         return null;
       }
     };
-    // Large attachments go straight to Telegram storage.
-    if (bin.byteLength >= 5 * 1024 * 1024) {
-      const url = await viaTelegram();
-      if (url) return url;
-    }
-    const path = `${uid}/coder-attachments/${Date.now()}-${slug(name).replace(/\s+/g, "-") || "file"}.${ext}`;
-    const { data, error } = await supabase.storage.from("user-images").upload(path, bin, {
-      contentType: mime,
-      upsert: false,
-    });
-    if (error || !data?.path) return await viaTelegram();
-    return supabase.storage.from("user-images").getPublicUrl(data.path).data.publicUrl || null;
+    // All attachments live on Telegram storage.
+    void uid;
+    void mime;
+    return await viaTelegram();
   } catch {
     return null;
   }
