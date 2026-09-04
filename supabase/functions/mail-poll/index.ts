@@ -48,8 +48,11 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   const secret = Deno.env.get("MAIL_INBOUND_SECRET");
+  const cronSecret = Deno.env.get("CRON_SECRET");
   const auth = req.headers.get("Authorization") || "";
-  const okSecret = secret && req.headers.get("x-mail-secret") === secret;
+  const okSecret =
+    (secret && req.headers.get("x-mail-secret") === secret) ||
+    (cronSecret && req.headers.get("x-cron-key") === cronSecret);
   const okService = auth.includes(Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "\u0000");
   let okUser = false;
   if (!okSecret && !okService && auth.startsWith("Bearer ")) {
