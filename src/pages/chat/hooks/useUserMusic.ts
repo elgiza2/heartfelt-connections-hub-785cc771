@@ -106,7 +106,6 @@ export function useUserMusic(params: {
 
   const deleteUserTrack = useCallback(
     async (track: UserTrack) => {
-      await supabase.storage.from("user-music").remove([track.storage_path]);
       await supabase.from("user_music_tracks").delete().eq("id", track.id);
       setUserTracks((prev) => prev.filter((t) => t.id !== track.id));
       if (studyMusicKind === track.name) {
